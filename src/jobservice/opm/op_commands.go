@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/garyburd/redigo/redis"
-	"github.com/vmware/harbor/src/jobservice/logger"
-	"github.com/vmware/harbor/src/jobservice/models"
-	"github.com/vmware/harbor/src/jobservice/utils"
+	"github.com/gomodule/redigo/redis"
+	"github.com/goharbor/harbor/src/jobservice/logger"
+	"github.com/goharbor/harbor/src/jobservice/models"
+	"github.com/goharbor/harbor/src/jobservice/utils"
 )
 
 const (

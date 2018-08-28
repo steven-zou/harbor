@@ -19,7 +19,6 @@ import { Project } from '../project';
 import { SessionService } from '../../shared/session.service';
 import { ProjectService } from '../../project/project.service';
 
-import { RoleMapping } from '../../shared/shared.const';
 import {AppConfigService} from "../../app-config.service";
 
 @Component({
@@ -46,7 +45,7 @@ export class ProjectDetailComponent {
     this.route.data.subscribe(data => {
       this.currentProject = <Project>data['projectResolver'];
       this.isMember = this.currentProject.is_member;
-      this.roleName = RoleMapping[this.currentProject.role_name];
+      this.roleName = this.currentProject.role_name;
     });
   }
 
@@ -65,6 +64,10 @@ export class ProjectDetailComponent {
 
   public get withAdmiral(): boolean {
     return this.appConfigService.getConfig().with_admiral;
+  }
+
+  public get withHelmChart(): boolean {
+    return this.appConfigService.getConfig().with_chartmuseum;
   }
 
   backToProject(): void {

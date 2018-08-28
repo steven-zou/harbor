@@ -8,9 +8,9 @@ import (
 
 	"github.com/gocraft/work"
 
-	"github.com/garyburd/redigo/redis"
-	"github.com/vmware/harbor/src/jobservice/logger"
-	"github.com/vmware/harbor/src/jobservice/utils"
+	"github.com/gomodule/redigo/redis"
+	"github.com/goharbor/harbor/src/jobservice/logger"
+	"github.com/goharbor/harbor/src/jobservice/utils"
 )
 
 //Sweeper take charge of clearing the outdated data such as scheduled jobs etc..
@@ -41,7 +41,9 @@ func (s *Sweeper) ClearOutdatedScheduledJobs() error {
 	r, err := conn.Do("SET", utils.KeyPeriodicLock(s.namespace), time.Now().Unix(), "EX", 30, "NX")
 	defer func() {
 		//Make sure it can be unlocked if it is not expired yet
-		conn.Do("DEL", utils.KeyPeriodicLock(s.namespace))
+		if _, err := conn.Do("DEL", utils.KeyPeriodicLock(s.namespace)); err != nil {
+			logger.Errorf("Unlock key '%s' failed with error: %s\n", utils.KeyPeriodicLock(s.namespace), err.Error())
+		}
 	}()
 	if err != nil {
 		return err

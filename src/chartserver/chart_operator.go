@@ -9,7 +9,7 @@ import (
 
 	"github.com/Masterminds/semver"
 
-	hlog "github.com/vmware/harbor/src/common/utils/log"
+	hlog "github.com/goharbor/harbor/src/common/utils/log"
 	"k8s.io/helm/pkg/chartutil"
 	helm_repo "k8s.io/helm/pkg/repo"
 )
@@ -25,6 +25,19 @@ type ChartVersionDetails struct {
 	Dependencies []*chartutil.Dependency `json:"dependencies"`
 	Values       map[string]interface{}  `json:"values"`
 	Files        map[string]string       `json:"files"`
+	Security     *SecurityReport         `json:"security"`
+}
+
+//SecurityReport keeps the info related with security
+//e.g.: digital signature, vulnerability scanning etc.
+type SecurityReport struct {
+	Signature *DigitalSignature `json:"signature"`
+}
+
+//DigitalSignature used to indicate if the chart has been signed
+type DigitalSignature struct {
+	Signed     bool   `json:"signed"`
+	Provenance string `json:"prov_file"`
 }
 
 //ChartInfo keeps the information of the chart
@@ -34,6 +47,7 @@ type ChartInfo struct {
 	Created       time.Time
 	Icon          string
 	Home          string
+	Deprecated    bool
 }
 
 //ChartOperator is designed to process the contents of
@@ -116,6 +130,7 @@ func (cho *ChartOperator) GetChartList(content []byte) ([]*ChartInfo, error) {
 			chartInfo.Created = oVersion.Created
 			chartInfo.Home = lVersion.Home
 			chartInfo.Icon = lVersion.Icon
+			chartInfo.Deprecated = lVersion.Deprecated
 			chartList = append(chartList, chartInfo)
 		}
 	}
@@ -141,7 +156,12 @@ func getTheTwoCharts(chartVersions helm_repo.ChartVersions) (latestChart *helm_r
 		if latestChart == nil {
 			latestChart = chartVersion
 		} else {
-			lVersion, _ := semver.NewVersion(latestChart.Version)
+			lVersion, err := semver.NewVersion(latestChart.Version)
+			if err != nil {
+				//ignore it, just logged
+				hlog.Warningf("Malformed semversion %s for the chart %s", latestChart.Version, chartVersion.Name)
+				continue
+			}
 			if lVersion.LessThan(currentV) {
 				latestChart = chartVersion
 			}

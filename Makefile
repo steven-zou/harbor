@@ -69,12 +69,12 @@ SRCPATH=./src
 TOOLSPATH=$(BUILDPATH)/tools
 UIPATH=$(BUILDPATH)/src/ui
 UINGPATH=$(BUILDPATH)/src/ui_ng
-GOBASEPATH=/go/src/github.com/vmware
+GOBASEPATH=/go/src/github.com/goharbor
 CHECKENVCMD=checkenv.sh
 
 # parameters
 REGISTRYSERVER=
-REGISTRYPROJECTNAME=vmware
+REGISTRYPROJECTNAME=goharbor
 DEVFLAG=true
 NOTARYFLAG=false
 CLAIRFLAG=false
@@ -99,7 +99,6 @@ VERSIONFILENAME=UIVERSION
 #versions
 REGISTRYVERSION=v2.6.2
 NGINXVERSION=$(VERSIONTAG)
-PHOTONVERSION=1.0
 NOTARYVERSION=v0.5.1
 MARIADBVERSION=$(VERSIONTAG)
 CLAIRVERSION=v2.0.4
@@ -110,7 +109,7 @@ REDISVERSION=$(VERSIONTAG)
 CHARTMUSEUMVERSION=v0.7.1
 
 #clarity parameters
-CLARITYIMAGE=vmware/harbor-clarity-ui-builder[:tag]
+CLARITYIMAGE=goharbor/harbor-clarity-ui-builder[:tag]
 CLARITYSEEDPATH=/harbor_src
 CLARITYUTPATH=${CLARITYSEEDPATH}/ui_ng/lib
 CLARITYBUILDSCRIPT=/entrypoint.sh
@@ -185,14 +184,14 @@ DOCKERFILEPATH_COMMON=$(MAKEPATH)/common
 DOCKERFILE_CLARITY=$(MAKEPATH)/dev/nodeclarity/Dockerfile
 
 # docker image name
-DOCKERIMAGENAME_ADMINSERVER=vmware/harbor-adminserver
-DOCKERIMAGENAME_UI=vmware/harbor-ui
-DOCKERIMAGENAME_JOBSERVICE=vmware/harbor-jobservice
-DOCKERIMAGENAME_LOG=vmware/harbor-log
-DOCKERIMAGENAME_DB=vmware/harbor-db
-DOCKERIMAGENAME_CLARITY=vmware/harbor-clarity-ui-builder
-DOCKERIMAGENAME_CHART_SERVER=vmware/chartmuseum-photon
-DOCKERIMAGENAME_REGCTL=vmware/harbor-registryctl
+DOCKERIMAGENAME_ADMINSERVER=goharbor/harbor-adminserver
+DOCKERIMAGENAME_UI=goharbor/harbor-ui
+DOCKERIMAGENAME_JOBSERVICE=goharbor/harbor-jobservice
+DOCKERIMAGENAME_LOG=goharbor/harbor-log
+DOCKERIMAGENAME_DB=goharbor/harbor-db
+DOCKERIMAGENAME_CLARITY=goharbor/harbor-clarity-ui-builder
+DOCKERIMAGENAME_CHART_SERVER=goharbor/chartmuseum-photon
+DOCKERIMAGENAME_REGCTL=goharbor/harbor-registryctl
 
 # docker-compose files
 DOCKERCOMPOSEFILEPATH=$(MAKEPATH)
@@ -226,41 +225,43 @@ DOCKERSAVE_PARA=$(DOCKERIMAGENAME_ADMINSERVER):$(VERSIONTAG) \
 		$(DOCKERIMAGENAME_DB):$(VERSIONTAG) \
 		$(DOCKERIMAGENAME_JOBSERVICE):$(VERSIONTAG) \
 		$(DOCKERIMAGENAME_REGCTL):$(VERSIONTAG) \
-		vmware/redis-photon:$(REDISVERSION) \
-		vmware/nginx-photon:$(NGINXVERSION) vmware/registry-photon:$(REGISTRYVERSION)-$(VERSIONTAG) \
-		vmware/photon:$(PHOTONVERSION)
+		goharbor/redis-photon:$(REDISVERSION) \
+		goharbor/nginx-photon:$(NGINXVERSION) goharbor/registry-photon:$(REGISTRYVERSION)-$(VERSIONTAG)
+
 PACKAGE_OFFLINE_PARA=-zcvf harbor-offline-installer-$(PKGVERSIONTAG).tgz \
 		          $(HARBORPKG)/common/templates $(HARBORPKG)/$(DOCKERIMGFILE).$(VERSIONTAG).tar.gz \
 				  $(HARBORPKG)/prepare $(HARBORPKG)/NOTICE \
 				  $(HARBORPKG)/LICENSE $(HARBORPKG)/install.sh \
 				  $(HARBORPKG)/harbor.cfg $(HARBORPKG)/$(DOCKERCOMPOSEFILENAME) \
 				  $(HARBORPKG)/open_source_license $(HARBORPKG)/ha
+
 PACKAGE_ONLINE_PARA=-zcvf harbor-online-installer-$(PKGVERSIONTAG).tgz \
 		          $(HARBORPKG)/common/templates $(HARBORPKG)/prepare \
 				  $(HARBORPKG)/LICENSE $(HARBORPKG)/NOTICE \
 				  $(HARBORPKG)/install.sh $(HARBORPKG)/$(DOCKERCOMPOSEFILENAME) \
 				  $(HARBORPKG)/harbor.cfg $(HARBORPKG)/ha \
 				  $(HARBORPKG)/open_source_license
+				  
 DOCKERCOMPOSE_LIST=-f $(DOCKERCOMPOSEFILEPATH)/$(DOCKERCOMPOSEFILENAME)
 
 ifeq ($(NOTARYFLAG), true)
-	DOCKERSAVE_PARA+= vmware/notary-server-photon:$(NOTARYVERSION)-$(VERSIONTAG) vmware/notary-signer-photon:$(NOTARYVERSION)-$(VERSIONTAG)
+	DOCKERSAVE_PARA+= goharbor/notary-server-photon:$(NOTARYVERSION)-$(VERSIONTAG) goharbor/notary-signer-photon:$(NOTARYVERSION)-$(VERSIONTAG)
 	PACKAGE_OFFLINE_PARA+= $(HARBORPKG)/$(DOCKERCOMPOSENOTARYFILENAME)
 	PACKAGE_ONLINE_PARA+= $(HARBORPKG)/$(DOCKERCOMPOSENOTARYFILENAME)
 	DOCKERCOMPOSE_LIST+= -f $(DOCKERCOMPOSEFILEPATH)/$(DOCKERCOMPOSENOTARYFILENAME)
 endif
 ifeq ($(CLAIRFLAG), true)
-	DOCKERSAVE_PARA+= vmware/clair-photon:$(CLAIRVERSION)-$(VERSIONTAG)
+	DOCKERSAVE_PARA+= goharbor/clair-photon:$(CLAIRVERSION)-$(VERSIONTAG)
 	PACKAGE_OFFLINE_PARA+= $(HARBORPKG)/$(DOCKERCOMPOSECLAIRFILENAME)
 	PACKAGE_ONLINE_PARA+= $(HARBORPKG)/$(DOCKERCOMPOSECLAIRFILENAME)
 	DOCKERCOMPOSE_LIST+= -f $(DOCKERCOMPOSEFILEPATH)/$(DOCKERCOMPOSECLAIRFILENAME)
 endif
 ifeq ($(MIGRATORFLAG), true)
-	DOCKERSAVE_PARA+= vmware/harbor-migrator:$(MIGRATORVERSION)
+	DOCKERSAVE_PARA+= goharbor/harbor-migrator:$(MIGRATORVERSION)
 endif
 # append chartmuseum parameters if set
 ifeq ($(CHARTFLAG), true)
-    DOCKERSAVE_PARA+= $(DOCKERIMAGENAME_CHART_SERVER):$(CHARTMUSEUMVERSION)-$(VERSIONTAG)
+	DOCKERSAVE_PARA+= $(DOCKERIMAGENAME_CHART_SERVER):$(CHARTMUSEUMVERSION)-$(VERSIONTAG)
 	PACKAGE_OFFLINE_PARA+= $(HARBORPKG)/$(DOCKERCOMPOSECHARTMUSEUMFILENAME)
 	PACKAGE_ONLINE_PARA+= $(HARBORPKG)/$(DOCKERCOMPOSECHARTMUSEUMFILENAME)
 	DOCKERCOMPOSE_LIST+= -f $(DOCKERCOMPOSEFILEPATH)/$(DOCKERCOMPOSECHARTMUSEUMFILENAME)
@@ -298,7 +299,7 @@ compile_golangimage: compile_clarity
 	@$(DOCKERCMD) run --rm -v $(BUILDPATH):$(GOBUILDPATH) -w $(GOBUILDPATH_JOBSERVICE) $(GOBUILDIMAGE) $(GOIMAGEBUILD) -o $(GOBUILDMAKEPATH_JOBSERVICE)/$(JOBSERVICEBINARYNAME)
 	@echo "Done."
 
-	@echo "compiling binary for harbor regsitry controller (golang image)..."
+	@echo "compiling binary for harbor registry controller (golang image)..."
 	@$(DOCKERCMD) run --rm -v $(BUILDPATH):$(GOBUILDPATH) -w $(GOBUILDPATH_REGISTRYCTL) $(GOBUILDIMAGE) $(GOIMAGEBUILD) -o $(GOBUILDMAKEPATH_REGISTRYCTL)/$(REGISTRYCTLBINARYNAME)
 	@echo "Done."
 
@@ -361,9 +362,9 @@ package_online: modify_composefile
 	@echo "packing online package ..."
 	@cp -r make $(HARBORPKG)
 	@if [ -n "$(REGISTRYSERVER)" ] ; then \
-		$(SEDCMD) -i 's/image\: vmware/image\: $(REGISTRYSERVER)\/$(REGISTRYPROJECTNAME)/' \
+		$(SEDCMD) -i 's/image\: goharbor/image\: $(REGISTRYSERVER)\/$(REGISTRYPROJECTNAME)/' \
 		$(HARBORPKG)/docker-compose.yml ; \
-		$(SEDCMD) -i 's/image\: vmware/image\: $(REGISTRYSERVER)\/$(REGISTRYPROJECTNAME)/' \
+		$(SEDCMD) -i 's/image\: goharbor/image\: $(REGISTRYSERVER)\/$(REGISTRYPROJECTNAME)/' \
 		$(HARBORPKG)/ha/docker-compose.yml ; \
 	fi
 	@cp LICENSE $(HARBORPKG)/LICENSE
@@ -412,6 +413,16 @@ run_clarity_ut:
 	@echo "run clarity ut ..."
 	@$(DOCKERCMD) run --rm -v $(UINGPATH):$(CLARITYSEEDPATH) -v $(BUILDPATH)/tests:$(CLARITYSEEDPATH)/tests $(CLARITYIMAGE) $(SHELL) $(CLARITYSEEDPATH)/tests/run-clarity-ut.sh
 
+gosec:
+	#go get github.com/securego/gosec/cmd/gosec
+	#go get github.com/dghubble/sling
+	@echo "run secure go scan ..."
+	@if [ "$(GOSECRESULTS)" != "" ] ; then \
+		$(GOPATH)/bin/gosec -fmt=json -out=$(GOSECRESULTS) -quiet ./... | true ; \
+	else \
+		$(GOPATH)/bin/gosec -fmt=json -out=harbor_gas_output.json -quiet ./... | true ; \
+	fi
+
 pushimage:
 	@echo "pushing harbor images ..."
 	@$(DOCKERTAG) $(DOCKERIMAGENAME_ADMINSERVER):$(VERSIONTAG) $(REGISTRYSERVER)$(DOCKERIMAGENAME_ADMINSERVER):$(VERSIONTAG)
@@ -453,6 +464,16 @@ down:
 	@echo "stoping harbor instance..."
 	@$(DOCKERCOMPOSECMD) $(DOCKERCOMPOSE_LIST) down -v
 	@echo "Done."
+
+swagger_client:
+	@echo "Generate swagger client"
+	wget -q http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O swagger-codegen-cli.jar
+	rm -rf harborclient
+	mkdir harborclient
+	java -jar swagger-codegen-cli.jar generate -i docs/swagger.yaml -l python -o harborclient
+	cd harborclient; python ./setup.py install
+	pip install docker -q 
+	pip freeze
 
 cleanbinary:
 	@echo "cleaning binary..."

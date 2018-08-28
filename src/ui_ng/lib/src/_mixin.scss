@@ -1,0 +1,31 @@
+@mixin text-overflow 
+{ 
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-wrap:break-word;
+    white-space: nowrap
+}
+
+
+@mixin text-overflow-param($width) { 
+    width: $width; 
+    @include text-overflow;
+}
+
+@mixin grid-left-top-pos{
+    position: absolute;
+    z-index: 100;
+    right: 35px;
+    margin-top: 4px;
+}
+
+@mixin absolute-center($width:108px) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto;
+    width: $width !important;
+    height: $width !important;
+}

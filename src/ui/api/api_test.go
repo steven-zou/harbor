@@ -24,16 +24,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vmware/harbor/src/common"
+	"github.com/goharbor/harbor/src/common"
 
 	"github.com/astaxie/beego"
 	"github.com/dghubble/sling"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/vmware/harbor/src/common/dao"
-	"github.com/vmware/harbor/src/common/dao/project"
-	common_http "github.com/vmware/harbor/src/common/http"
-	"github.com/vmware/harbor/src/common/models"
+	"github.com/goharbor/harbor/src/common/dao"
+	"github.com/goharbor/harbor/src/common/dao/project"
+	common_http "github.com/goharbor/harbor/src/common/http"
+	"github.com/goharbor/harbor/src/common/models"
 )
 
 var (
@@ -200,9 +200,10 @@ func TestMain(m *testing.M) {
 	if err := prepare(); err != nil {
 		panic(err)
 	}
-	defer clean()
 
-	os.Exit(m.Run())
+	ret := m.Run()
+	clean()
+	os.Exit(ret)
 }
 
 func prepare() error {

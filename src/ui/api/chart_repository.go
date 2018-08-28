@@ -12,9 +12,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/vmware/harbor/src/chartserver"
-	hlog "github.com/vmware/harbor/src/common/utils/log"
-	"github.com/vmware/harbor/src/ui/config"
+	"github.com/goharbor/harbor/src/chartserver"
+	hlog "github.com/goharbor/harbor/src/common/utils/log"
+	"github.com/goharbor/harbor/src/ui/config"
 )
 
 const (
@@ -33,6 +33,7 @@ const (
 	formFieldNameForChart = "chart"
 	formFiledNameForProv  = "prov"
 	headerContentType     = "Content-Type"
+	contentTypeMultipart  = "multipart/form-data"
 )
 
 //chartController is a singleton instance
@@ -170,19 +171,21 @@ func (cra *ChartRepositoryAPI) UploadChartVersion() {
 		return
 	}
 
-	//Rewrite file content
-	formFiles := make([]formFile, 0)
-	formFiles = append(formFiles,
-		formFile{
-			formField: formFieldNameForChart,
-			mustHave:  true,
-		},
-		formFile{
-			formField: formFiledNameForProv,
-		})
-	if err := cra.rewriteFileContent(formFiles, cra.Ctx.Request); err != nil {
-		chartserver.WriteInternalError(cra.Ctx.ResponseWriter, err)
-		return
+	//Rewrite file content if the content type is "multipart/form-data"
+	if isMultipartFormData(cra.Ctx.Request) {
+		formFiles := make([]formFile, 0)
+		formFiles = append(formFiles,
+			formFile{
+				formField: formFieldNameForChart,
+				mustHave:  true,
+			},
+			formFile{
+				formField: formFiledNameForProv,
+			})
+		if err := cra.rewriteFileContent(formFiles, cra.Ctx.Request); err != nil {
+			chartserver.WriteInternalError(cra.Ctx.ResponseWriter, err)
+			return
+		}
 	}
 
 	chartController.GetManipulationHandler().UploadChartVersion(cra.Ctx.ResponseWriter, cra.Ctx.Request)
@@ -195,16 +198,18 @@ func (cra *ChartRepositoryAPI) UploadChartProvFile() {
 		return
 	}
 
-	//Rewrite file content
-	formFiles := make([]formFile, 0)
-	formFiles = append(formFiles,
-		formFile{
-			formField: formFiledNameForProv,
-			mustHave:  true,
-		})
-	if err := cra.rewriteFileContent(formFiles, cra.Ctx.Request); err != nil {
-		chartserver.WriteInternalError(cra.Ctx.ResponseWriter, err)
-		return
+	//Rewrite file content if the content type is "multipart/form-data"
+	if isMultipartFormData(cra.Ctx.Request) {
+		formFiles := make([]formFile, 0)
+		formFiles = append(formFiles,
+			formFile{
+				formField: formFiledNameForProv,
+				mustHave:  true,
+			})
+		if err := cra.rewriteFileContent(formFiles, cra.Ctx.Request); err != nil {
+			chartserver.WriteInternalError(cra.Ctx.ResponseWriter, err)
+			return
+		}
 	}
 
 	chartController.GetManipulationHandler().UploadProvenanceFile(cra.Ctx.ResponseWriter, cra.Ctx.Request)
@@ -258,13 +263,13 @@ func (cra *ChartRepositoryAPI) requireNamespace(namespace string) bool {
 	existsing, err := cra.ProjectMgr.Exists(namespace)
 	if err != nil {
 		//Check failed with error
-		cra.RenderError(http.StatusInternalServerError, fmt.Sprintf("failed to check existence of namespace %s with error: %s", namespace, err.Error()))
+		cra.renderError(http.StatusInternalServerError, fmt.Sprintf("failed to check existence of namespace %s with error: %s", namespace, err.Error()))
 		return false
 	}
 
 	//Not existing
 	if !existsing {
-		cra.HandleBadRequest(fmt.Sprintf("namespace %s is not existing", namespace))
+		cra.renderError(http.StatusBadRequest, fmt.Sprintf("namespace %s is not existing", namespace))
 		return false
 	}
 
@@ -279,71 +284,57 @@ func (cra *ChartRepositoryAPI) requireAccess(namespace string, accessLevel uint)
 		return true //do nothing
 	}
 
-	//At least, authentication is necessary when level > public
-	if !cra.SecurityCtx.IsAuthenticated() {
-		cra.HandleUnauthorized()
-		return false
-	}
-
 	theLevel := accessLevel
 	//If repo is empty, system admin role must be required
 	if len(namespace) == 0 {
 		theLevel = accessLevelSystem
 	}
 
+	var err error
+
 	switch theLevel {
 	//Should be system admin role
 	case accessLevelSystem:
 		if !cra.SecurityCtx.IsSysAdmin() {
-			cra.RenderError(http.StatusForbidden, fmt.Sprintf("system admin role is required but user '%s' is not", cra.SecurityCtx.GetUsername()))
-			return false
+			err = errors.New("permission denied: system admin role is required")
 		}
 	case accessLevelAll:
 		if !cra.SecurityCtx.HasAllPerm(namespace) {
-			cra.RenderError(http.StatusForbidden, fmt.Sprintf("project admin role is required but user '%s' does not have", cra.SecurityCtx.GetUsername()))
-			return false
+			err = errors.New("permission denied: project admin or higher role is required")
 		}
 	case accessLevelWrite:
 		if !cra.SecurityCtx.HasWritePerm(namespace) {
-			cra.RenderError(http.StatusForbidden, fmt.Sprintf("developer role is required but user '%s' does not have", cra.SecurityCtx.GetUsername()))
-			return false
+			err = errors.New("permission denied: developer or higher role is required")
 		}
 	case accessLevelRead:
 		if !cra.SecurityCtx.HasReadPerm(namespace) {
-			cra.RenderError(http.StatusForbidden, fmt.Sprintf("at least a guest role is required for user '%s'", cra.SecurityCtx.GetUsername()))
-			return false
+			err = errors.New("permission denied: guest or higher role is required")
 		}
 	default:
 		//access rejected for invalid scope
-		cra.RenderError(http.StatusForbidden, "unrecognized access scope")
+		cra.renderError(http.StatusForbidden, "unrecognized access scope")
+		return false
+	}
+
+	//Access is not granted, check if user has authenticated
+	if err != nil {
+		//Unauthenticated, return 401
+		if !cra.SecurityCtx.IsAuthenticated() {
+			cra.renderError(http.StatusUnauthorized, "Unauthorized")
+			return false
+		}
+
+		//Authenticated, return 403
+		cra.renderError(http.StatusForbidden, err.Error())
 		return false
 	}
 
 	return true
 }
 
-//Initialize the chart service controller
-func initializeChartController() (*chartserver.Controller, error) {
-	addr, err := config.GetChartMuseumEndpoint()
-	if err != nil {
-		return nil, fmt.Errorf("Failed to get the endpoint URL of chart storage server: %s", err.Error())
-	}
-
-	addr = strings.TrimSuffix(addr, "/")
-	url, err := url.Parse(addr)
-	if err != nil {
-		return nil, errors.New("Endpoint URL of chart storage server is malformed")
-	}
-
-	controller, err := chartserver.NewController(url)
-	if err != nil {
-		return nil, errors.New("Failed to initialize chart API controller")
-	}
-
-	hlog.Debugf("Chart storage server is set to %s", url.String())
-	hlog.Info("API controller for chart repository server is successfully initialized")
-
-	return controller, nil
+//write error message with unified format
+func (cra *ChartRepositoryAPI) renderError(code int, text string) {
+	chartserver.WriteError(cra.Ctx.ResponseWriter, code, errors.New(text))
 }
 
 //formFile is used to represent the uploaded files in the form
@@ -401,7 +392,37 @@ func (cra *ChartRepositoryAPI) rewriteFileContent(files []formFile, request *htt
 	}
 
 	request.Header.Set(headerContentType, w.FormDataContentType())
+	request.ContentLength = -1
 	request.Body = ioutil.NopCloser(&body)
 
 	return nil
+}
+
+//Initialize the chart service controller
+func initializeChartController() (*chartserver.Controller, error) {
+	addr, err := config.GetChartMuseumEndpoint()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get the endpoint URL of chart storage server: %s", err.Error())
+	}
+
+	addr = strings.TrimSuffix(addr, "/")
+	url, err := url.Parse(addr)
+	if err != nil {
+		return nil, errors.New("Endpoint URL of chart storage server is malformed")
+	}
+
+	controller, err := chartserver.NewController(url)
+	if err != nil {
+		return nil, errors.New("Failed to initialize chart API controller")
+	}
+
+	hlog.Debugf("Chart storage server is set to %s", url.String())
+	hlog.Info("API controller for chart repository server is successfully initialized")
+
+	return controller, nil
+}
+
+//Check if the request content type is "multipart/form-data"
+func isMultipartFormData(req *http.Request) bool {
+	return strings.Contains(req.Header.Get(headerContentType), contentTypeMultipart)
 }

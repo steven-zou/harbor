@@ -19,15 +19,16 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/vmware/harbor/src/common"
+	"github.com/goharbor/harbor/src/common"
+	goldap "gopkg.in/ldap.v2"
 
-	"github.com/vmware/harbor/src/common/dao"
-	"github.com/vmware/harbor/src/common/dao/group"
-	"github.com/vmware/harbor/src/common/models"
-	ldapUtils "github.com/vmware/harbor/src/common/utils/ldap"
-	"github.com/vmware/harbor/src/common/utils/log"
-	"github.com/vmware/harbor/src/ui/auth"
-	"github.com/vmware/harbor/src/ui/config"
+	"github.com/goharbor/harbor/src/common/dao"
+	"github.com/goharbor/harbor/src/common/dao/group"
+	"github.com/goharbor/harbor/src/common/models"
+	ldapUtils "github.com/goharbor/harbor/src/common/utils/ldap"
+	"github.com/goharbor/harbor/src/common/utils/log"
+	"github.com/goharbor/harbor/src/ui/auth"
+	"github.com/goharbor/harbor/src/ui/config"
 )
 
 // Auth implements AuthenticateHelper interface to authenticate against LDAP
@@ -162,6 +163,9 @@ func (l *Auth) SearchUser(username string) (*models.User, error) {
 
 //SearchGroup -- Search group in ldap authenticator, groupKey is LDAP group DN.
 func (l *Auth) SearchGroup(groupKey string) (*models.UserGroup, error) {
+	if _, err := goldap.ParseDN(groupKey); err != nil {
+		return nil, auth.ErrInvalidLDAPGroupDN
+	}
 	ldapSession, err := ldapUtils.LoadSystemLdapConfig()
 
 	if err != nil {
@@ -192,10 +196,21 @@ func (l *Auth) SearchGroup(groupKey string) (*models.UserGroup, error) {
 
 // OnBoardGroup -- Create Group in harbor DB, if altGroupName is not empty, take the altGroupName as groupName in harbor DB.
 func (l *Auth) OnBoardGroup(u *models.UserGroup, altGroupName string) error {
+	if _, err := goldap.ParseDN(u.LdapGroupDN); err != nil {
+		return auth.ErrInvalidLDAPGroupDN
+	}
 	if len(altGroupName) > 0 {
 		u.GroupName = altGroupName
 	}
 	u.GroupType = common.LdapGroupType
+	//Check duplicate LDAP DN in usergroup, if usergroup exist, return error
+	userGroupList, err := group.QueryUserGroup(models.UserGroup{LdapGroupDN: u.LdapGroupDN})
+	if err != nil {
+		return err
+	}
+	if len(userGroupList) > 0 {
+		return auth.ErrDuplicateLDAPGroup
+	}
 	return group.OnBoardUserGroup(u, "LdapGroupDN", "GroupType")
 }
 

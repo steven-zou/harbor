@@ -19,10 +19,10 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/vmware/harbor/src/adminserver/systemcfg/store"
-	"github.com/vmware/harbor/src/common"
-	"github.com/vmware/harbor/src/common/dao"
-	"github.com/vmware/harbor/src/common/models"
+	"github.com/goharbor/harbor/src/adminserver/systemcfg/store"
+	"github.com/goharbor/harbor/src/common"
+	"github.com/goharbor/harbor/src/common/dao"
+	"github.com/goharbor/harbor/src/common/models"
 )
 
 const (
@@ -31,14 +31,15 @@ const (
 
 var (
 	numKeys = map[string]bool{
-		common.EmailPort:       true,
-		common.LDAPScope:       true,
-		common.LDAPTimeout:     true,
-		common.TokenExpiration: true,
-		common.MaxJobWorkers:   true,
-		common.CfgExpiration:   true,
-		common.ClairDBPort:     true,
-		common.PostGreSQLPort:  true,
+		common.EmailPort:            true,
+		common.LDAPScope:            true,
+		common.LDAPGroupSearchScope: true,
+		common.LDAPTimeout:          true,
+		common.TokenExpiration:      true,
+		common.MaxJobWorkers:        true,
+		common.CfgExpiration:        true,
+		common.ClairDBPort:          true,
+		common.PostGreSQLPort:       true,
 	}
 	boolKeys = map[string]bool{
 		common.WithClair:        true,

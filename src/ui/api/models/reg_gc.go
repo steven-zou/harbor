@@ -19,11 +19,11 @@ import (
 	"fmt"
 
 	"github.com/astaxie/beego/validation"
-	"github.com/vmware/harbor/src/common/job"
-	"github.com/vmware/harbor/src/common/job/models"
-	"github.com/vmware/harbor/src/common/utils"
-	"github.com/vmware/harbor/src/common/utils/log"
-	"github.com/vmware/harbor/src/ui/config"
+	"github.com/goharbor/harbor/src/common/job"
+	"github.com/goharbor/harbor/src/common/job/models"
+	"github.com/goharbor/harbor/src/common/utils"
+	"github.com/goharbor/harbor/src/common/utils/log"
+	"github.com/goharbor/harbor/src/ui/config"
 )
 
 const (
@@ -39,9 +39,10 @@ const (
 
 // GCReq holds request information for admin job
 type GCReq struct {
-	Schedule *ScheduleParam `json:"schedule"`
-	Status   string         `json:"status"`
-	ID       int64          `json:"id"`
+	Schedule   *ScheduleParam         `json:"schedule"`
+	Status     string                 `json:"status"`
+	ID         int64                  `json:"id"`
+	Parameters map[string]interface{} `json:"parameters"`
 }
 
 //ScheduleParam defines the parameter of schedule trigger
@@ -88,8 +89,9 @@ func (gr *GCReq) ToJob() (*models.JobData, error) {
 	}
 
 	jobData := &models.JobData{
-		Name:     job.ImageGC,
-		Metadata: metadata,
+		Name:       job.ImageGC,
+		Parameters: gr.Parameters,
+		Metadata:   metadata,
 		StatusHook: fmt.Sprintf("%s/service/notifications/jobs/adminjob/%d",
 			config.InternalUIURL(), gr.ID),
 	}

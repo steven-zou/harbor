@@ -19,7 +19,7 @@ Library  OperatingSystem
 
 *** Variables ***
 ${HARBOR_VERSION}  v1.1.1
-${CLAIR_BUILDER}  1.4.0
+${CLAIR_BUILDER}  1.6.0
 ${GOLANG_VERSION}  1.9.2
 
 *** Keywords ***
@@ -55,7 +55,7 @@ Down Harbor
     Should Be Equal As Integers  ${rc}  0
 
 Package Harbor Offline
-    [Arguments]  ${golang_image}=golang:${GOLANG_VERSION}  ${clarity_image}=vmware/harbor-clarity-ui-builder:${CLAIR_BUILDER}  ${with_notary}=true  ${with_clair}=true  ${with_migrator}=true  ${with_chartmuseum}=true
+    [Arguments]  ${golang_image}=golang:${GOLANG_VERSION}  ${clarity_image}=goharbor/harbor-clarity-ui-builder:${CLAIR_BUILDER}  ${with_notary}=true  ${with_clair}=true  ${with_migrator}=true  ${with_chartmuseum}=true
     Log To Console  \nStart Docker Daemon
     Start Docker Daemon Locally
     Log To Console  \n\nmake package_offline VERSIONTAG=%{Harbor_Assets_Version} PKGVERSIONTAG=%{Harbor_Package_Version} UIVERSIONTAG=%{Harbor_UI_Version} GOBUILDIMAGE=${golang_image} COMPILETAG=compile_golangimage CLARITYIMAGE=${clarity_image} NOTARYFLAG=${with_notary} CLAIRFLAG=${with_clair} MIGRATORFLAG=${with_migrator} CHARTFLAG=${with_chartmuseum} HTTPPROXY=
@@ -65,7 +65,7 @@ Package Harbor Offline
     Should Be Equal As Integers  ${rc}  0
 
 Package Harbor Online
-    [Arguments]  ${golang_image}=golang:${GOLANG_VERSION}  ${clarity_image}=vmware/harbor-clarity-ui-builder:${CLAIR_BUILDER}  ${with_notary}=true  ${with_clair}=true  ${with_migrator}=true  ${with_chartmuseum}=true
+    [Arguments]  ${golang_image}=golang:${GOLANG_VERSION}  ${clarity_image}=goharbor/harbor-clarity-ui-builder:${CLAIR_BUILDER}  ${with_notary}=true  ${with_clair}=true  ${with_migrator}=true  ${with_chartmuseum}=true
     Log To Console  \nStart Docker Daemon
     Start Docker Daemon Locally
     Log To Console  \nmake package_online VERSIONTAG=%{Harbor_Assets_Version} PKGVERSIONTAG=%{Harbor_Package_Version} UIVERSIONTAG=%{Harbor_UI_Version} GOBUILDIMAGE=${golang_image} COMPILETAG=compile_golangimage CLARITYIMAGE=${clarity_image} NOTARYFLAG=${with_notary} CLAIRFLAG=${with_clair} MIGRATORFLAG=${with_migrator} CHARTFLAG=${with_chartmuseum} HTTPPROXY=
@@ -102,17 +102,17 @@ Enable Notary Client
     Log  ${ip}
     ${rc}=  Run And Return Rc  mkdir -p /etc/docker/certs.d/${ip}/
     Should Be Equal As Integers  ${rc}  0
-    ${rc}=  Run And Return Rc  mkdir -p ~/.docker/tls/${ip}:4443/
+    ${rc}=  Run And Return Rc  mkdir -p ~/.docker/tls/${notaryServerEndpoint}/
     Should Be Equal As Integers  ${rc}  0
     ${rc}  ${output}=  Run And Return Rc And Output  cp ./harbor_ca.crt /etc/docker/certs.d/${ip}/
     Log  ${output}
     Should Be Equal As Integers  ${rc}  0
-    ${rc}  ${output}=  Run And Return Rc And Output  cp ./harbor_ca.crt ~/.docker/tls/${ip}:4443/
+    ${rc}  ${output}=  Run And Return Rc And Output  cp ./harbor_ca.crt ~/.docker/tls/${notaryServerEndpoint}/
     Log  ${output}
     Should Be Equal As Integers  ${rc}  0
     ${rc}  ${output}=  Run And Return Rc And Output  ls -la /etc/docker/certs.d/${ip}/
     Log  ${output}
-    ${rc}  ${output}=  Run And Return Rc And Output  ls -la ~/.docker/tls/${ip}:4443/
+    ${rc}  ${output}=  Run And Return Rc And Output  ls -la ~/.docker/tls/${notaryServerEndpoint}/
     Log  ${output}
 
 Prepare
@@ -150,14 +150,14 @@ Prepare Cert
     Should Be Equal As Integers  ${rc}  0
 
 Compile and Up Harbor With Source Code
-    [Arguments]  ${golang_image}=golang:${GOLANG_VERSION}  ${clarity_image}=vmware/harbor-clarity-ui-builder:${CLAIR_BUILDER}  ${with_notary}=true  ${with_clair}=true  ${with_chartmuseum}=true
+    [Arguments]  ${golang_image}=golang:${GOLANG_VERSION}  ${clarity_image}=goharbor/harbor-clarity-ui-builder:${CLAIR_BUILDER}  ${with_notary}=true  ${with_clair}=true  ${with_chartmuseum}=true
     ${rc}  ${output}=  Run And Return Rc And Output  docker pull ${clarity_image}
     Log  ${output}
     Should Be Equal As Integers  ${rc}  0
     ${rc}  ${output}=  Run And Return Rc And Output  docker pull ${golang_image}
     Log  ${output}
     Should Be Equal As Integers  ${rc}  0
-    ${rc}  ${output}=  Run And Return Rc And Output  make install GOBUILDIMAGE=${golang_image} COMPILETAG=compile_golangimage CLARITYIMAGE=${clarity_image} NOTARYFLAG=${with_notary} CLAIRFLAG=${with_clair} CHARTFLAG=${with_chartmuseum} HTTPPROXY=
+    ${rc}  ${output}=  Run And Return Rc And Output  make install swagger_client GOBUILDIMAGE=${golang_image} COMPILETAG=compile_golangimage CLARITYIMAGE=${clarity_image} NOTARYFLAG=${with_notary} CLAIRFLAG=${with_clair} CHARTFLAG=${with_chartmuseum} HTTPPROXY=
     Log  ${output}
     Should Be Equal As Integers  ${rc}  0
     Sleep  20

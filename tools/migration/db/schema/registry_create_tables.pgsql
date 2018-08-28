@@ -31,43 +31,10 @@ create table harbor_user (
  reset_uuid varchar(40) DEFAULT NULL,
  salt varchar(40) DEFAULT NULL,
  sysadmin_flag smallint DEFAULT 0 NOT NULL,
- creation_time timestamp(0),
- update_time timestamp(0),
+ creation_time timestamp default CURRENT_TIMESTAMP,
+ update_time timestamp default CURRENT_TIMESTAMP,
  UNIQUE (username),
  UNIQUE (email)
-);
-
-create table project (
- project_id int PRIMARY KEY NOT NULL,
- owner_id int NOT NULL,
- /*
- The max length of name controlled by API is 30, 
- and 11 is reserved for marking the deleted project.
- */
- name varchar (255) NOT NULL,
- creation_time timestamp,
- update_time timestamp,
- deleted smallint DEFAULT 0 NOT NULL,
- /*
- FOREIGN KEY (owner_id) REFERENCES harbor_user(user_id),
- */
- UNIQUE (name)
-);
-
-create table project_member (
- id int NOT NULL,
- project_id int NOT NULL,
- entity_id int NOT NULL,
- /*
- entity_type indicates the type of member,
- u for user, g for user group
- */
- entity_type char(1) NOT NULL,
- role int NOT NULL,
- creation_time timestamp default 'now'::timestamp,
- update_time timestamp default 'now'::timestamp,
- PRIMARY KEY (id),
- CONSTRAINT unique_project_entity_type UNIQUE (project_id, entity_id, entity_type)
 );
 
 CREATE FUNCTION update_update_time_at_column() RETURNS trigger
@@ -79,6 +46,47 @@ CREATE FUNCTION update_update_time_at_column() RETURNS trigger
   END;
 $$;
 
+/* 
+The trigger for harbor_user and project should be added by alembic pgsql v1.6.0, 
+put them here is to reduce DB operation, make all things be done in the creation of DB.
+*/
+CREATE TRIGGER harbor_user_update_time_at_modtime BEFORE UPDATE ON harbor_user FOR EACH ROW EXECUTE PROCEDURE update_update_time_at_column();
+
+create table project (
+ project_id int PRIMARY KEY NOT NULL,
+ owner_id int NOT NULL,
+ /*
+ The max length of name controlled by API is 30, 
+ and 11 is reserved for marking the deleted project.
+ */
+ name varchar (255) NOT NULL,
+ creation_time timestamp default CURRENT_TIMESTAMP,
+ update_time timestamp default CURRENT_TIMESTAMP,
+ deleted smallint DEFAULT 0 NOT NULL,
+ /*
+ FOREIGN KEY (owner_id) REFERENCES harbor_user(user_id),
+ */
+ UNIQUE (name)
+);
+
+CREATE TRIGGER project_update_time_at_modtime BEFORE UPDATE ON project FOR EACH ROW EXECUTE PROCEDURE update_update_time_at_column();
+
+create table project_member (
+ id int NOT NULL,
+ project_id int NOT NULL,
+ entity_id int NOT NULL,
+ /*
+ entity_type indicates the type of member,
+ u for user, g for user group
+ */
+ entity_type char(1) NOT NULL,
+ role int NOT NULL,
+ creation_time timestamp default CURRENT_TIMESTAMP,
+ update_time timestamp default CURRENT_TIMESTAMP,
+ PRIMARY KEY (id),
+ CONSTRAINT unique_project_entity_type UNIQUE (project_id, entity_id, entity_type)
+);
+
 CREATE TRIGGER project_member_update_time_at_modtime BEFORE UPDATE ON project_member FOR EACH ROW EXECUTE PROCEDURE update_update_time_at_column();
 
 create table project_metadata (
@@ -86,8 +94,8 @@ create table project_metadata (
  project_id int NOT NULL,
  name varchar(255) NOT NULL,
  value varchar(255),
- creation_time timestamp default 'now'::timestamp,
- update_time timestamp default 'now'::timestamp,
+ creation_time timestamp default CURRENT_TIMESTAMP,
+ update_time timestamp default CURRENT_TIMESTAMP,
  deleted smallint DEFAULT 0 NOT NULL,
  PRIMARY KEY (id),
  CONSTRAINT unique_project_id_and_name UNIQUE (project_id,name)
@@ -103,8 +111,8 @@ create table user_group (
  group_name varchar(255) NOT NULL,
  group_type smallint default 0,
  ldap_group_dn varchar(512) NOT NULL,
- creation_time timestamp default 'now'::timestamp,
- update_time timestamp default 'now'::timestamp,
+ creation_time timestamp default CURRENT_TIMESTAMP,
+ update_time timestamp default CURRENT_TIMESTAMP,
  PRIMARY KEY (id)
 );
 
@@ -118,7 +126,7 @@ create table access_log (
  repo_tag varchar (128),
  GUID varchar(64), 
  operation varchar(20) NOT NULL,
- op_time timestamp,
+ op_time timestamp default CURRENT_TIMESTAMP,
  primary key (log_id)
 );
 
@@ -131,8 +139,8 @@ create table repository (
  description text,
  pull_count int DEFAULT 0 NOT NULL,
  star_count int DEFAULT 0 NOT NULL,
- creation_time timestamp default 'now'::timestamp,
- update_time timestamp default 'now'::timestamp,
+ creation_time timestamp default CURRENT_TIMESTAMP,
+ update_time timestamp default CURRENT_TIMESTAMP,
  primary key (repository_id),
  UNIQUE (name)
 );
@@ -151,8 +159,8 @@ create table replication_policy (
  filters varchar(1024),
  replicate_deletion SMALLINT DEFAULT 0 NOT NULL,
  start_time timestamp NULL,
- creation_time timestamp default 'now'::timestamp,
- update_time timestamp default 'now'::timestamp,
+ creation_time timestamp default CURRENT_TIMESTAMP,
+ update_time timestamp default CURRENT_TIMESTAMP,
  PRIMARY KEY (id)
  );
 
@@ -171,8 +179,8 @@ create table replication_target (
  */
  target_type SMALLINT NOT NULL DEFAULT 0,
  insecure SMALLINT NOT NULL DEFAULT 0,
- creation_time timestamp default 'now'::timestamp,
- update_time timestamp default 'now'::timestamp,
+ creation_time timestamp default CURRENT_TIMESTAMP,
+ update_time timestamp default CURRENT_TIMESTAMP,
  PRIMARY KEY (id)
  );
  
@@ -189,8 +197,8 @@ create table replication_job (
 New job service only records uuid, for compatibility in this table both IDs are stored.
  */
  job_uuid varchar(64),
- creation_time timestamp default 'now'::timestamp,
- update_time timestamp default 'now'::timestamp,
+ creation_time timestamp default CURRENT_TIMESTAMP,
+ update_time timestamp default CURRENT_TIMESTAMP,
  PRIMARY KEY (id)
  );
  
@@ -206,8 +214,8 @@ create table replication_immediate_trigger (
  namespace varchar(256) NOT NULL,
  on_push SMALLINT NOT NULL DEFAULT 0,
  on_deletion SMALLINT NOT NULL DEFAULT 0,
- creation_time timestamp default 'now'::timestamp,
- update_time timestamp default 'now'::timestamp,
+ creation_time timestamp default CURRENT_TIMESTAMP,
+ update_time timestamp default CURRENT_TIMESTAMP,
  PRIMARY KEY (id)
  );
  
@@ -223,8 +231,8 @@ create table replication_immediate_trigger (
 New job service only records uuid, for compatibility in this table both IDs are stored.
 */
  job_uuid varchar(64),
- creation_time timestamp default 'now'::timestamp,
- update_time timestamp default 'now'::timestamp,
+ creation_time timestamp default CURRENT_TIMESTAMP,
+ update_time timestamp default CURRENT_TIMESTAMP,
  PRIMARY KEY (id)
  );
 
@@ -245,8 +253,8 @@ create table img_scan_overview (
  components_overview varchar(2048),
  /* primary key for querying details, in clair it should be the name of the "top layer" */
  details_key varchar(128),
- creation_time timestamp default 'now'::timestamp,
- update_time timestamp default 'now'::timestamp,
+ creation_time timestamp default CURRENT_TIMESTAMP,
+ update_time timestamp default CURRENT_TIMESTAMP,
  PRIMARY KEY(id),
  UNIQUE(image_digest)
  );
@@ -285,8 +293,8 @@ create table harbor_label (
 */
  scope char(1) NOT NULL,
  project_id int,
- creation_time timestamp default 'now'::timestamp,
- update_time timestamp default 'now'::timestamp,
+ creation_time timestamp default CURRENT_TIMESTAMP,
+ update_time timestamp default CURRENT_TIMESTAMP,
  PRIMARY KEY(id),
  CONSTRAINT unique_name_and_scope UNIQUE (name,scope,project_id)
  );
@@ -311,8 +319,8 @@ the resource_name is the name of image when the resource_type is i
  'i' for image
 */
  resource_type char(1) NOT NULL,
- creation_time timestamp default 'now'::timestamp,
- update_time timestamp default 'now'::timestamp,
+ creation_time timestamp default CURRENT_TIMESTAMP,
+ update_time timestamp default CURRENT_TIMESTAMP,
  PRIMARY KEY(id),
  CONSTRAINT unique_label_resource UNIQUE (label_id,resource_id, resource_name, resource_type)
  );

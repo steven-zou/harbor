@@ -1,7 +1,7 @@
 package proxy
 
 import (
-	"github.com/vmware/harbor/src/ui/config"
+	"github.com/goharbor/harbor/src/ui/config"
 
 	"fmt"
 	"net/http"
@@ -13,9 +13,6 @@ import (
 var Proxy *httputil.ReverseProxy
 
 var handlers handlerChain
-
-// RegistryProxyPrefix is the prefix of url on UI.
-const RegistryProxyPrefix = "/registryproxy"
 
 type handlerChain struct {
 	head http.Handler

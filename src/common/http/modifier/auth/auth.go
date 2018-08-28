@@ -18,8 +18,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/vmware/harbor/src/common/http/modifier"
-	"github.com/vmware/harbor/src/common/secret"
+	"github.com/goharbor/harbor/src/common/http/modifier"
+	"github.com/goharbor/harbor/src/common/secret"
 )
 
 // Authorizer is a kind of Modifier used to authorize the requests
@@ -42,6 +42,6 @@ func (s *SecretAuthorizer) Modify(req *http.Request) error {
 	if req == nil {
 		return errors.New("the request is null")
 	}
-	secret.AddToRequest(req, s.secret)
-	return nil
+	err := secret.AddToRequest(req, s.secret)
+	return err
 }

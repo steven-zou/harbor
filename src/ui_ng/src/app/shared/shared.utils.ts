@@ -26,12 +26,13 @@ import { httpStatusCode, AlertType } from './shared.const';
  * @returns {string}
  */
 export const errorHandler = function (error: any): string {
-    if (!error) {
-        return "UNKNOWN_ERROR";
-    }
-    if (!(error.statusCode || error.status)) {
+    if (error && error._body) {
         // treat as string message
-        return '' + error;
+        if (typeof error._body === "string") {
+            return error._body;
+        } else if (error._body.error) {
+            return error._body.error;
+        }
     } else {
         switch (error.statusCode || error.status) {
             case 400:
@@ -143,14 +144,32 @@ export class CustomComparator<T> implements Comparator<T> {
     compare(a: { [key: string]: any | any[] }, b: { [key: string]: any | any[] }) {
         let comp = 0;
         if (a && b) {
-            let fieldA = a[this.fieldName];
-            let fieldB = b[this.fieldName];
+            let fieldA, fieldB;
+            for (let key of Object.keys(a)) {
+                if (key === this.fieldName) {
+                    fieldA = a[key];
+                    fieldB = b[key];
+                    break;
+                } else if (typeof a[key] === 'object') {
+                    let insideObject = a[key];
+                    for (let insideKey in insideObject) {
+                        if (insideKey === this.fieldName) {
+                            fieldA = insideObject[insideKey];
+                            fieldB = b[key][insideKey];
+                            break;
+                        }
+                    }
+                }
+            }
             switch (this.type) {
                 case "number":
                     comp = fieldB - fieldA;
                     break;
                 case "date":
                     comp = new Date(fieldB).getTime() - new Date(fieldA).getTime();
+                    break;
+                case "string":
+                    comp = fieldB.localeCompare(fieldA);
                     break;
             }
         }

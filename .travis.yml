@@ -5,7 +5,7 @@ language: go
 go: 
   - 1.9.2
 
-go_import_path: github.com/vmware/harbor
+go_import_path: github.com/goharbor/harbor
 
 services: 
   - docker
@@ -79,7 +79,7 @@ script:
   - sudo mkdir -p /harbor
   - sudo mv ./VERSION /harbor/UIVERSION
   - sudo service postgresql stop
-  - sudo make run_clarity_ut CLARITYIMAGE=vmware/harbor-clarity-ui-builder:1.4.0
+  - sudo make run_clarity_ut CLARITYIMAGE=goharbor/harbor-clarity-ui-builder:1.6.0
   - cat ./src/ui_ng/npm-ut-test-results
   - sudo ./tests/testprepare.sh 
   - sudo make -f make/photon/Makefile _build_db _build_registry -e VERSIONTAG=dev -e CLAIRDBVERSION=dev -e REGISTRYVERSION=v2.6.2
@@ -99,21 +99,11 @@ script:
   - sudo ./admiral.sh 
   - cd .. 
   - go test -race -i ./src/ui ./src/adminserver ./src/jobservice
-  - sudo -E env "PATH=$PATH" "POSTGRES_MIGRATION_SCRIPTS_PATH=/home/travis/gopath/src/github.com/vmware/harbor/make/migrations/postgresql/" ./tests/coverage4gotest.sh
+  - sudo -E env "PATH=$PATH" "POSTGRES_MIGRATION_SCRIPTS_PATH=/home/travis/gopath/src/github.com/goharbor/harbor/make/migrations/postgresql/" ./tests/coverage4gotest.sh
   - goveralls -coverprofile=profile.cov -service=travis-ci
   - docker-compose -f make/docker-compose.test.yml down
-  - sudo rm -rf /data/config/*
-  - sudo rm -rf /data/database/*
   - ls /data/cert
-  - sudo make install GOBUILDIMAGE=golang:1.9.2 COMPILETAG=compile_golangimage CLARITYIMAGE=vmware/harbor-clarity-ui-builder:1.4.0 NOTARYFLAG=true CLAIRFLAG=true
-  - sleep 10  
-  - docker ps 
-  - ./tests/validatecontainers.sh
-  - ./tests/notarytest.sh
   - ./tests/swaggerchecker.sh
-  - ./tests/startuptest.sh
-  - ./tests/userlogintest.sh ${HARBOR_ADMIN} ${HARBOR_ADMIN_PASSWD}
-  - export REDIS_HOST=$IP
 
 #  - sudo ./tests/testprepare.sh
 #  - go test -v ./tests/apitests

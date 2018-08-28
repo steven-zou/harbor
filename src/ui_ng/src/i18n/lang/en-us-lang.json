@@ -1,6 +1,6 @@
 {
     "APP_TITLE": {
-        "VMW_HARBOR": "VMware Harbor",
+        "VMW_HARBOR": "Harbor",
         "HARBOR": "Harbor",
         "VIC": "vSphere Integrated Containers",
         "MGMT": "Management",
@@ -36,7 +36,10 @@
         "EDIT": "EDIT",
         "SWITCH": "SWITCH",
         "REPLICATE": "REPLICATE",
-        "ACTIONS": "Actions"
+        "ACTIONS": "Actions",
+        "BROWSE": "Browse",
+        "UPLOAD": "Upload",
+        "NO_FILE": "No file selected"
     },
     "BATCH": {
         "DELETED_SUCCESS": "Deleted successfully",
@@ -185,7 +188,8 @@
         "LOGS": "Logs",
         "LABELS": "Labels",
         "PROJECTS": "Projects",
-        "CONFIG": "Configuration"
+        "CONFIG": "Configuration",
+        "HELMCHART": "Helm Charts"
     },
     "PROJECT_CONFIG": {
         "REGISTRY": "Project registry",
@@ -202,7 +206,7 @@
         "AUTOSCAN_POLICY": "Automatically scan images when they are pushed to the project registry."
     },
     "MEMBER": {
-        "NEW_USER": "New User",
+        "NEW_USER": "Add User Member",
         "NEW_MEMBER": "New Member",
         "MEMBER": "Member",
         "NAME": "Name",
@@ -220,10 +224,10 @@
         "ADD_USER": "Add User",
         "NEW_USER_INFO": "Add an user to be a member of this project with specified role",
         "NEW_GROUP": "New Group",
-        "IMPORT_GROUP": "Import New LDAP Group",
-        "NEW_GROUP_INFO": "Import a new LDAP group or select one or more existing groups to add with the specific role.",
-        "ADD_GROUP_SELECT": "Add a group as a project member",
-        "CREATE_GROUP_SELECT": "Import a new group from LDAP",
+        "IMPORT_GROUP": "Add Group Member",
+        "NEW_GROUP_INFO": "Add an existing user group or select a user group from LDAP/AD to project member",
+        "ADD_GROUP_SELECT": "Add an existing user group to project member",
+        "CREATE_GROUP_SELECT": "Add a group from LDAP to project member",
         "LDAP_SEARCH_DN": "LDAP Group DN",
         "LDAP_SEARCH_NAME": "Name",
         "LDAP_GROUP": "Group",
@@ -263,8 +267,10 @@
         "PROPERTY": "Property",
         "REG_TIME": "Registration Time",
         "ADD_GROUP_SUCCESS": "Add group success",
-        "ADD_GROUP_FAILURE": "Add group failure",
-        "LDAP_TYPE": "LDAP"
+        "EDIT_GROUP_SUCCESS": "Edit group success",
+        "LDAP_TYPE": "LDAP",
+        "OF": "of",
+        "ITEMS": "items"
     },
     "AUDIT_LOG": {
         "USERNAME": "Username",
@@ -311,7 +317,6 @@
         "TEST_CONNECTION_SUCCESS": "Connection tested successfully.",
         "TEST_CONNECTION_FAILURE": "Failed to ping endpoint.",
         "NAME": "Name",
-        "STATUS": "Status",
         "PROJECT": "Project",
         "NAME_IS_REQUIRED": "Name is required.",
         "DESCRIPTION": "Description",
@@ -367,7 +372,7 @@
         "JOB_PLACEHOLDER": "We couldn't find any replication jobs!",
         "JOB_LOG_VIEWER": "View Replication Job Log",
         "NO_ENDPOINT_INFO": "Please add an endpoint first",
-        "NO_PROJECT_INFO": "Please add a project name first",
+        "NO_PROJECT_INFO": "This project is not exist",
         "SOURCE_IMAGES_FILTER": "Source images filter",
         "SCHEDULE": "Scheduled",
         "MANUAL": "Manual",
@@ -470,6 +475,61 @@
         "DEPLOY": "DEPLOY",
         "ADDITIONAL_INFO": "Add Additional Info"
     },
+    "HELM_CHART": {
+        "HELMCHARTS": "Charts",
+        "CHARTVERSIONS": "Versions",
+        "UPLOAD_TITLE": "Upload chart files",
+        "CHART_FILE": "Chart File",
+        "CHART_PROV": "Prov File",
+        "DOWNLOAD": "Download",
+        "SUMMARY": "Summary",
+        "DEPENDENCIES": "Dependencies",
+        "VALUES": "Values",
+        "OVERVIEW": "Overview",
+        "HOME": "Home",
+        "SRC_REPO": "Source Repository",
+        "CREATED": "Created Time",
+        "MAINTAINERS": "Maintainers",
+        "PULLS": "Pull Count",
+        "VERSION": "Version",
+        "APP_VERSION": "Application Version",
+        "INSTALL": "Install",
+        "INSTALL_CHART": "Install Chart",
+        "NAME": "Name",
+        "REPO": "Repository",
+        "FILTER_FOR_CHARTS": "Filter for charts",
+        "DELETE": "Delete",
+        "OF": "of",
+        "VERSIONS": "versions",
+        "IMAGES": "Images",
+        "ENGINE": "Engine",
+        "ACTION": "Action",
+        "UPLOAD": "Upload",
+        "DELETE_CHART_VERSION_TITLE": "Delete Chart Versions",
+        "DELETE_CHART_VERSION": "Do you want to delete version {{param}}?",
+        "IMPORT": "Import",
+        "EXPORT": "Export",
+        "ADD_REPO": "Add Repo",
+        "SHOW_KV": "Key Value Pairs",
+        "SHOW_YAML": "YAML File",
+        "PLACEHOLDER": "We couldn't find any charts!",
+        "NO_VERSION_PLACEHOLDER": "We couldn't find any versions!",
+        "FILE_UPLOADED": "File upload successfully",
+        "SIGN": "Sign",
+        "SIGNED": "Signed",
+        "UNSIGNED": "Unsigned",
+        "ITEMS": "items",
+        "NO_README": "No readme file provided by this chart.",
+        "SECURITY": "Security",
+        "ACTIVE": "Active",
+        "DEPRECATED": "Deprecated",
+        "VERIFY_CHART": "Verify Chart",
+        "COMMAND": "Commands",
+        "PROV_FILE": "Prov File",
+        "READY": "Ready",
+        "NOT_READY": "Not Ready",
+        "STATUS": "Status"
+    },
     "ALERT": {
         "FORM_CHANGE_CONFIRMATION": "Some changes are not saved yet. Do you want to cancel?"
     },
@@ -548,13 +608,15 @@
             "SCOPE": "LDAP Scope",
             "VERIFY_CERT": "LDAP Verify Cert",
             "LDAP_GROUP_BASE_DN": "LDAP Group Base DN",
-            "LDAP_GROUP_BASE_DN_INFO": "The base DN of your LDAP group.",
+            "LDAP_GROUP_BASE_DN_INFO": "The base DN from which to look up a group in LDAP/AD.",
             "LDAP_GROUP_FILTER": "LDAP Group Filter",
-            "LDAP_GROUP_FILTER_INFO": "The filter of your LDAP group",
+            "LDAP_GROUP_FILTER_INFO": "The filter to look up an LDAP/AD group, use objectclass=groupOfNames by default.",
             "LDAP_GROUP_GID": "LDAP Group GID",
-            "LDAP_GROUP_GID_INFO": "The Group gid of your LDAP group",
+            "LDAP_GROUP_GID_INFO": "The attribute used in a search to match a user, it could be uid, cn or other attributes depending on your LDAP/AD. the group in Harbor is named with this attribute by default.",
+            "LDAP_GROUP_ADMIN_DN": "LDAP Group Admin DN",
+            "LDAP_GROUP_ADMIN_DN_INFO": "Specify an LDAP group DN. all LDAP user in this group will have harbor admin privilege. Keep it blank if you do not want to.",
             "GROUP_SCOPE": "LDAP Group Scope",
-            "GROUP_SCOPE_INFO": "The scope of your LDAP Group"
+            "GROUP_SCOPE_INFO": "The scope to search for groups, select Subtree by default."
 
         },
         "UAA": {
@@ -591,7 +653,7 @@
     "ABOUT": {
         "VERSION": "Version",
         "BUILD": "Build",
-        "COPYRIGHT": "Copyright 1998-2018 VMware, Inc. All rights reserved. This product is protected by U.S. and international property laws. VMware products are covered by one or more patents listed at",
+        "COPYRIGHT": "Project Harbor is an an open source trusted cloud native registry project that stores, signs, and scans content. Harbor extends the open source Docker Distribution by adding the functionalities usually required by users such as security, identity and management. Harbor supports advanced features such as user management, access control, activity monitoring, and replication between instances. Having a registry closer to the build and run environment can also improve image transfer efficiency.",
         "COPYRIGHT_SUFIX": ".",
         "TRADEMARK": "VMware is a registered trademark or trademark of VMware, Inc. in the United States and other jurisdictions. All other marks and names mentioned herein may be trademark of their respective companies.",
         "END_USER_LICENSE": "End User License Agreement",
@@ -644,12 +706,12 @@
             "TOOLTIPS_TITLE_ZERO": "No recognizable vulnerability package found"
         },
         "SEVERITY": {
-            "HIGH": "high",
-            "MEDIUM": "medium",
-            "LOW": "low",
-            "NEGLIGIBLE": "negligible",
-            "UNKNOWN": "unknown",
-            "NONE": "none"
+            "HIGH": "High",
+            "MEDIUM": "Medium",
+            "LOW": "Low",
+            "NEGLIGIBLE": "Negligible",
+            "UNKNOWN": "Unknown",
+            "NONE": "None"
         },
         "SINGULAR": "vulnerability",
         "OVERALL_SEVERITY": "Vulnerability Severity:",
@@ -723,6 +785,8 @@
         "DELETE_REPLICATION": "Delete replication",
         "DELETE_MEMBER": "Delete user member",
         "DELETE_GROUP": "Delete group member",
+        "DELETE_CHART_VERSION": "Delete Chart Version",
+        "DELETE_CHART": "Delete Chart",
         "SWITCH_ROLE": "Switch role",
         "ADD_GROUP": "Add group member",
         "ADD_USER": "Add user member",

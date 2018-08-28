@@ -9,7 +9,7 @@
                         <clr-icon [ngClass]="{'is-highlight': isCardView || isHovering('card') }" shape="view-cards"></clr-icon>
                     </span>
                     <span class="list-btn" (click)="showCard(false)" (mouseenter) ="mouseEnter('list') "  (mouseleave) ="mouseLeave('list')">
-                        <clr-icon [ngClass]="{'is-highlight': !isCardView || isHovering('list') }"shape="view-list"></clr-icon>
+                        <clr-icon [ngClass]="{'is-highlight': !isCardView || isHovering('list') }" shape="view-list"></clr-icon>
                     </span>
                     <span class="filter-divider"></span>
                     <span class="refresh-btn" (click)="refresh()"><clr-icon shape="refresh"></clr-icon></span>
@@ -47,15 +47,22 @@
         </div>
     </div>
 
-    <hbr-gridview *ngIf="isCardView" #gridView style="position:relative;" [items]="repositories" [loading]="loading" [pageSize]="pageSize"
-        [currentPage]="currentPage" [totalCount]="totalCount" [expectScrollPercent]="90" [withAdmiral]="withAdmiral" (loadNextPageEvent)="loadNextPage()">
+    <hbr-gridview *ngIf="isCardView" #gridView style="position:relative;" 
+    [items]="repositories" 
+    [loading]="loading"
+    [pageSize]="pageSize"
+    [currentPage]="currentPage"
+    [totalCount]="totalCount"
+    [expectScrollPercent]="90"
+    [withAdmiral]="withAdmiral"
+    (loadNextPageEvent)="loadNextPage()">
         <ng-template let-item="item">
             <a class="card clickable" (click)="watchRepoClickEvt(item)">
                 <div class="card-header">
                     <div [ngClass]="{'card-media-block': true, 'wrap': !withAdmiral }">
                         <img *ngIf="withAdmiral" [src]="getImgLink(item)"/>
                         <div class="card-media-description">
-                            <span class="card-media-title">{{item.name}}</span>
+                            <span class="card-media-title" [title]="item.name">{{item.name}}</span>
                             <p class="card-media-text">{{registryUrl}}</p>
                         </div>
                     </div>

@@ -54,7 +54,7 @@ Test Case - Notary Basic Verfication
     Log  ${output}
 		
     Push image  ${ip}  %{HARBOR_ADMIN}  %{HARBOR_PASSWORD}  library  hello-world:latest
-    ${rc}  ${output}=  Run And Return Rc And Output  ./tests/robot-cases/Group9-Content-trust/notary-push-image.sh ${ip}
+    ${rc}  ${output}=  Run And Return Rc And Output  ./tests/robot-cases/Group9-Content-trust/notary-push-image.sh ${ip} ${notaryServerEndpoint}
     Log  ${output}
     Should Be Equal As Integers  ${rc}  0
 
@@ -72,3 +72,8 @@ Test Case - Ldap Basic Verfication
     Logout Harbor
     Sign In Harbor  ${HARBOR_URL}  mike  zhu88jie
     Close Browser
+
+Test Case - Run LDAP Group Related API Test
+    Harbor API Test  ./tests/apitests/python/test_ldap_admin_role.py
+    Harbor API Test  ./tests/apitests/python/test_user_group.py
+    Harbor API Test  ./tests/apitests/python/test_assign_role_to_ldap_group.py

@@ -19,11 +19,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/vmware/harbor/src/common"
-	"github.com/vmware/harbor/src/common/dao"
-	"github.com/vmware/harbor/src/common/models"
-	"github.com/vmware/harbor/src/common/utils/log"
-	"github.com/vmware/harbor/src/ui/config"
+	"github.com/goharbor/harbor/src/common"
+	"github.com/goharbor/harbor/src/common/dao"
+	"github.com/goharbor/harbor/src/common/models"
+	"github.com/goharbor/harbor/src/common/utils/log"
+	"github.com/goharbor/harbor/src/ui/config"
 )
 
 // 1.5 seconds
@@ -36,6 +36,12 @@ var ErrorUserNotExist = errors.New("User does not exist")
 
 // ErrorGroupNotExist ...
 var ErrorGroupNotExist = errors.New("Group does not exist")
+
+// ErrDuplicateLDAPGroup ...
+var ErrDuplicateLDAPGroup = errors.New("An LDAP user group with same DN already exist")
+
+// ErrInvalidLDAPGroupDN ...
+var ErrInvalidLDAPGroupDN = errors.New("The LDAP group DN is invalid")
 
 //ErrAuth is the type of error to indicate a failed authentication due to user's error.
 type ErrAuth struct {

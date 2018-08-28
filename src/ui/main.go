@@ -15,31 +15,32 @@
 package main
 
 import (
+	"encoding/gob"
 	"fmt"
 	"os"
 	"reflect"
 	"strconv"
 
-	"github.com/vmware/harbor/src/common/utils"
-	"github.com/vmware/harbor/src/common/utils/log"
+	"github.com/goharbor/harbor/src/common/utils"
+	"github.com/goharbor/harbor/src/common/utils/log"
 
 	"github.com/astaxie/beego"
 	_ "github.com/astaxie/beego/session/redis"
 
-	"github.com/vmware/harbor/src/common/dao"
-	"github.com/vmware/harbor/src/common/models"
-	"github.com/vmware/harbor/src/common/notifier"
-	"github.com/vmware/harbor/src/common/scheduler"
-	"github.com/vmware/harbor/src/replication/core"
-	_ "github.com/vmware/harbor/src/replication/event"
-	"github.com/vmware/harbor/src/ui/api"
-	_ "github.com/vmware/harbor/src/ui/auth/db"
-	_ "github.com/vmware/harbor/src/ui/auth/ldap"
-	_ "github.com/vmware/harbor/src/ui/auth/uaa"
-	"github.com/vmware/harbor/src/ui/config"
-	"github.com/vmware/harbor/src/ui/filter"
-	"github.com/vmware/harbor/src/ui/proxy"
-	"github.com/vmware/harbor/src/ui/service/token"
+	"github.com/goharbor/harbor/src/common/dao"
+	"github.com/goharbor/harbor/src/common/models"
+	"github.com/goharbor/harbor/src/common/notifier"
+	"github.com/goharbor/harbor/src/common/scheduler"
+	"github.com/goharbor/harbor/src/replication/core"
+	_ "github.com/goharbor/harbor/src/replication/event"
+	"github.com/goharbor/harbor/src/ui/api"
+	_ "github.com/goharbor/harbor/src/ui/auth/db"
+	_ "github.com/goharbor/harbor/src/ui/auth/ldap"
+	_ "github.com/goharbor/harbor/src/ui/auth/uaa"
+	"github.com/goharbor/harbor/src/ui/config"
+	"github.com/goharbor/harbor/src/ui/filter"
+	"github.com/goharbor/harbor/src/ui/proxy"
+	"github.com/goharbor/harbor/src/ui/service/token"
 )
 
 const (
@@ -77,6 +78,7 @@ func main() {
 	//TODO
 	redisURL := os.Getenv("_REDIS_URL")
 	if len(redisURL) > 0 {
+		gob.Register(models.User{})
 		beego.BConfig.WebConfig.Session.SessionProvider = "redis"
 		beego.BConfig.WebConfig.Session.SessionProviderConfig = redisURL
 	}
@@ -94,15 +96,6 @@ func main() {
 	}
 	if err := dao.InitDatabase(database); err != nil {
 		log.Fatalf("failed to initialize database: %v", err)
-	}
-	if config.WithClair() {
-		clairDB, err := config.ClairDB()
-		if err != nil {
-			log.Fatalf("failed to load clair database information: %v", err)
-		}
-		if err := dao.InitClairDB(clairDB); err != nil {
-			log.Fatalf("failed to initialize clair database: %v", err)
-		}
 	}
 
 	password, err := config.InitialAdminPassword()
@@ -126,20 +119,29 @@ func main() {
 		log.Errorf("failed to subscribe scan all policy change topic: %v", err)
 	}
 
-	//Get policy configuration.
-	scanAllPolicy := config.ScanAllPolicy()
-	if scanAllPolicy.Type == notifier.PolicyTypeDaily {
-		dailyTime := 0
-		if t, ok := scanAllPolicy.Parm["daily_time"]; ok {
-			if reflect.TypeOf(t).Kind() == reflect.Int {
-				dailyTime = t.(int)
-			}
+	if config.WithClair() {
+		clairDB, err := config.ClairDB()
+		if err != nil {
+			log.Fatalf("failed to load clair database information: %v", err)
 		}
+		if err := dao.InitClairDB(clairDB); err != nil {
+			log.Fatalf("failed to initialize clair database: %v", err)
+		}
+		//Get policy configuration.
+		scanAllPolicy := config.ScanAllPolicy()
+		if scanAllPolicy.Type == notifier.PolicyTypeDaily {
+			dailyTime := 0
+			if t, ok := scanAllPolicy.Parm["daily_time"]; ok {
+				if reflect.TypeOf(t).Kind() == reflect.Int {
+					dailyTime = t.(int)
+				}
+			}
 
-		//Send notification to handle first policy change.
-		if err = notifier.Publish(notifier.ScanAllPolicyTopic,
-			notifier.ScanPolicyNotification{Type: scanAllPolicy.Type, DailyTime: (int64)(dailyTime)}); err != nil {
-			log.Errorf("failed to publish scan all policy topic: %v", err)
+			//Send notification to handle first policy change.
+			if err = notifier.Publish(notifier.ScanAllPolicyTopic,
+				notifier.ScanPolicyNotification{Type: scanAllPolicy.Type, DailyTime: (int64)(dailyTime)}); err != nil {
+				log.Errorf("failed to publish scan all policy topic: %v", err)
+			}
 		}
 	}
 

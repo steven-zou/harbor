@@ -26,6 +26,12 @@
 
 clr-datagrid {
     ::ng-deep clr-checkbox {
-        position: inherit;
-    }
+         position: inherit;
+     }
+ }
+
+:host >>> clr-checkbox.checkbox.datagrid-foot-select {
+    position: inherit;
 }
+
+

@@ -21,12 +21,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/vmware/harbor/src/common"
-	"github.com/vmware/harbor/src/common/dao"
-	"github.com/vmware/harbor/src/common/models"
-	"github.com/vmware/harbor/src/common/utils"
-	"github.com/vmware/harbor/src/common/utils/log"
-	"github.com/vmware/harbor/src/ui/config"
+	"github.com/goharbor/harbor/src/common"
+	"github.com/goharbor/harbor/src/common/dao"
+	"github.com/goharbor/harbor/src/common/models"
+	"github.com/goharbor/harbor/src/common/utils"
+	"github.com/goharbor/harbor/src/common/utils/log"
+	"github.com/goharbor/harbor/src/ui/config"
 )
 
 // UserAPI handles request to /api/users/{}
@@ -116,6 +116,9 @@ func (ua *UserAPI) Get() {
 			ua.CustomAbort(http.StatusInternalServerError, "Internal error.")
 		}
 		u.Password = ""
+		if ua.userID == ua.currentUserID {
+			u.HasAdminRole = ua.SecurityCtx.IsSysAdmin()
+		}
 		ua.Data["json"] = u
 		ua.ServeJSON()
 		return
