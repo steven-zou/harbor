@@ -1,0 +1,44 @@
+<div>
+    <div>
+        <span><a href="/harbor">&lt; home</a></span>
+    </div>
+    <div>
+        <h2>Distribution Histories</h2>
+    </div>
+    <div class="row dist-history-tool">
+        <div class="row flex-items-xs-right">
+            <div class="flex-xs-middle height-fix">
+                <hbr-filter [withDivider]="true" filterPlaceholder="Filter histories" [currentValue]="lastFilteredKeyword" (filterEvt)="doFilter($event)"></hbr-filter>
+                <span class="refresh-btn" (click)="refresh()">
+                  <clr-icon shape="refresh"></clr-icon>
+              </span>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+            <clr-datagrid (clrDgRefresh)="refresh($event)" [clrDgLoading]="loading">
+                <clr-dg-column>Image</clr-dg-column>
+                <clr-dg-column>Timestamp</clr-dg-column>
+                <clr-dg-column>Status</clr-dg-column>
+                <clr-dg-column>Provider</clr-dg-column>
+                <clr-dg-column>Instance</clr-dg-column>
+                <clr-dg-placeholder>No histories found</clr-dg-placeholder>
+                <clr-dg-row *ngFor="let record of records">
+                    <clr-dg-cell>{{ record.image }}</clr-dg-cell>
+                    <clr-dg-cell>{{ record.timestamp }}</clr-dg-cell>
+                    <clr-dg-cell>{{ record.status }}</clr-dg-cell>
+                    <clr-dg-cell>{{ record.provider }}</clr-dg-cell>
+                    <clr-dg-cell>{{ record.instance }}</clr-dg-cell>
+                </clr-dg-row>
+                <clr-dg-footer>
+                    <clr-dg-pagination #pagination [clrDgPageSize]="pageSize" [clrDgTotalItems]="totalCount">
+                        <span *ngIf="pagination.totalItems">
+                          {{pagination.firstItem + 1}} - {{pagination.lastItem + 1}} {{'HELM_CHART.OF' | translate}}
+                      </span> {{pagination.totalItems}} {{'HELM_CHART.ITEMS'| translate}}
+                    </clr-dg-pagination>
+                </clr-dg-footer>
+            </clr-datagrid>
+        </div>
+    </div>
+</div>

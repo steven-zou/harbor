@@ -1,0 +1,17 @@
+@import "../base";
+$refrsh-btn-color: #007CBB;
+.refresh-btn {
+    @include refresh-button
+}
+
+.refresh-btn:hover {
+    @include refresh-button-hover($refrsh-btn-color);
+}
+
+.dist-history-tool {
+    @include float-right(15px);
+}
+
+.height-fix {
+    height: 30px;
+}

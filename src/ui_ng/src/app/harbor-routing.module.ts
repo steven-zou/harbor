@@ -51,6 +51,9 @@ import { ListChartsComponent } from './project/list-charts/list-charts.component
 import { ListChartVersionsComponent } from './project/list-chart-versions/list-chart-versions.component';
 import { ChartDetailComponent } from './project/chart-detail/chart-detail.component';
 
+import { DistributionHistoryComponent } from './distribution/distribution-history/distribution-history.component';
+import { DistributionProvidersComponent } from './distribution/distribution-providers/distribution-providers.component';
+
 const harborRoutes: Routes = [
   { path: '', redirectTo: 'harbor', pathMatch: 'full' },
   { path: 'reset_password', component: ResetPasswordComponent },
@@ -188,6 +191,16 @@ const harborRoutes: Routes = [
         component: DestinationPageComponent,
         canActivate: [SystemAdminGuard],
         canActivateChild: [SystemAdminGuard],
+      },
+      {
+        path: 'distribution/providers',
+        component: DistributionProvidersComponent,
+        canActivate: [SystemAdminGuard]
+      },
+      {
+        path: 'distribution/histories',
+        component: DistributionHistoryComponent,
+        canActivate: [SystemAdminGuard]
       }
     ]
   },
