@@ -1,4 +1,4 @@
-@import "../base";
+@import "../base.scss";
 $refrsh-btn-color: #007CBB;
 .refresh-btn {
     @include refresh-button

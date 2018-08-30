@@ -2,7 +2,7 @@ package provider
 
 const (
 	//DriverStatusHealthy represents the healthy status
-	DriverStatusHealthy = "healthy"
+	DriverStatusHealthy = "Healthy"
 
 	//DriverStatusUnHealthy represents the unhealthy status
 	DriverStatusUnHealthy = "Unhealthy"

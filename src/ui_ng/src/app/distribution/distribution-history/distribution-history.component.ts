@@ -21,7 +21,7 @@ export class DistributionHistoryComponent implements OnInit {
   ngOnInit() {
   }
 
-  refresh(st: State) {
+  loadData(st: State) {
     this.disService.getDistributionHistories()
     .subscribe(
       histories => {
@@ -32,7 +32,11 @@ export class DistributionHistoryComponent implements OnInit {
     );
   }
 
-  doFilter($evt){
+  refresh(){
+    this.loadData(null);
+  }
+
+  doFilter($evt: any){
     console.log($evt);
   }
 
