@@ -1,0 +1,24 @@
+@import "../base.scss";
+.card-img-override {
+    height: 156px;
+    img {
+        top: 50%;
+        transform: translateY(-15%);
+        position: absolute;
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+}
+
+.card-override {
+    @include square(300px);
+    margin-right: 30px;
+}
+
+.card-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: flex-start;
+}

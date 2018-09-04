@@ -1,0 +1,77 @@
+<div class="row flex-items-xs-bottom">
+    <div class="col-xs">
+        <button class="btn btn-sm creare-btn-pos-fix" (click)="createInstance()">
+      <clr-icon shape="plus-circle"></clr-icon>
+      Create
+    </button>
+    </div>
+    <div class="col-xs dist-providers-tool">
+        <div>
+            <hbr-filter [withDivider]="true" filterPlaceholder="Filter providers" [currentValue]="lastFilteredKeyword" (filterEvt)="doFilter($event)"></hbr-filter>
+            <span class="refresh-btn" (click)="refresh()">
+          <clr-icon shape="refresh"></clr-icon>
+        </span>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+        <clr-datagrid (clrDgRefresh)="loadData($event)" [clrDgLoading]="loading">
+            <clr-dg-column>Name</clr-dg-column>
+            <clr-dg-column>Endpoint</clr-dg-column>
+            <clr-dg-column>Status</clr-dg-column>
+            <clr-dg-column>Enabled</clr-dg-column>
+            <clr-dg-column>Setup Timestamp</clr-dg-column>
+            <clr-dg-column>Provider</clr-dg-column>
+            <clr-dg-column>Actions</clr-dg-column>
+            <clr-dg-placeholder>No histories found</clr-dg-placeholder>
+            <clr-dg-row *ngFor="let instance of instances">
+                <clr-dg-cell>{{ instance.name }}</clr-dg-cell>
+                <clr-dg-cell>{{ instance.endpoint }}</clr-dg-cell>
+                <clr-dg-cell [ngSwitch]='instance.status === "Healthy"'>
+                    <clr-icon shape="success-standard" class="is-success" size="24" *ngSwitchCase="true"></clr-icon>
+                    <clr-icon shape="error-standard" class="is-error" size="24" *ngSwitchDefault></clr-icon>
+                    {{instance.status}}
+                </clr-dg-cell>
+                <clr-dg-cell>{{ instance.enabled }}</clr-dg-cell>
+                <clr-dg-cell>{{ instance.setupTimestamp | date : "yyyy/MM/dd HH:mm:ss" }}</clr-dg-cell>
+                <clr-dg-cell>{{ instance.provider.name }}</clr-dg-cell>
+                <clr-dg-cell>
+                    <clr-dropdown>
+                        <button type="button" clrDropdownTrigger>
+                        <clr-icon shape="tools" class="is-highlight"></clr-icon>
+                        <clr-icon shape="caret down"></clr-icon>
+                    </button>
+                        <clr-dropdown-menu *clrIfOpen>
+                            <button type="button" clrDropdownItem (click)="editInstance(instance)">
+                            <clr-icon shape="edit"></clr-icon>
+                            Edit
+                        </button>
+                            <div class="dropdown-divider"></div>
+                            <button type="button" [disabled]="instance.enabled" clrDropdownItem (click)="enableInstance(instance.ID)">
+                            <clr-icon shape="success-standard"></clr-icon>
+                            Enable
+                        </button>
+                            <button type="button" [disabled]="!instance.enabled" clrDropdownItem (click)="disableInstance(instance.ID)">
+                            <clr-icon shape="error-standard"></clr-icon>
+                            Disable
+                        </button>
+                            <div class="dropdown-divider"></div>
+                            <button type="button" class="btn btn-danger" clrDropdownItem (click)="deleteInstance(instance.ID)">
+                            <clr-icon shape="trash" class="is-danger"></clr-icon>
+                            Delete
+                        </button>
+                        </clr-dropdown-menu>
+                    </clr-dropdown>
+                </clr-dg-cell>
+            </clr-dg-row>
+            <clr-dg-footer>
+                <clr-dg-pagination #pagination [clrDgPageSize]="pageSize" [clrDgTotalItems]="totalCount">
+                    <span *ngIf="pagination.totalItems">
+                {{pagination.firstItem + 1}} - {{pagination.lastItem + 1}} {{'HELM_CHART.OF' | translate}}
+            </span> {{pagination.totalItems}} {{'HELM_CHART.ITEMS'| translate}}
+                </clr-dg-pagination>
+            </clr-dg-footer>
+        </clr-datagrid>
+    </div>
+</div>

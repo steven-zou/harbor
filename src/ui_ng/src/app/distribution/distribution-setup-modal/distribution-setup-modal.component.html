@@ -1,3 +1,63 @@
-<p>
-  distribution-setup-modal works!
-</p>
+<clr-modal [(clrModalOpen)]="opened" [clrModalClosable]="false" [clrModalStaticBackdrop]="true">
+    <h3 class="modal-title">{{ title }}</h3>
+    <div class="modal-body">
+        <form #instanceForm="ngForm">
+            <section class="form-block">
+                <label>Overview</label>
+                <div class="form-group">
+                    <label for="instanceName">Name</label>
+                    <label for="instanceName" aria-haspopup="true" role="tooltip" class="tooltip tooltip-validation tooltip-md tooltip-bottom-left" [class.invalid]="instNameInput.invalid && (instNameInput.dirty || instNameInput.touched)">
+            <input type="text" id="instanceName" placeholder="Enter name of the instance" required name="instanceName"
+              [(ngModel)]="model.name" #instNameInput="ngModel" size="33">
+            <span class="tooltip-content">
+              Name is required.
+            </span>
+          </label>
+                </div>
+                <div class="form-group">
+                    <label for="instDescription">Description</label>
+                    <textarea rows="3" id="instDescription" placeholder="Describe more about this instance" name="instDescription" [(ngModel)]="model.description" #instDescInput="ngModel"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="instEnabled">Enabled</label>
+                    <div class="toggle-switch">
+                        <input id="instEnabled" name="instEnabled" type="checkbox" [(ngModel)]="model.enabled">
+                        <label for="instEnabled">{{ enabledLabel }}</label>
+                    </div>
+                </div>
+            </section>
+            <section class="form-block">
+                <label>Service</label>
+                <div class="form-group">
+                    <label for="instanceEndpoint">Endpoint</label>
+                    <label for="instanceEndpoint" aria-haspopup="true" role="tooltip" class="tooltip tooltip-validation tooltip-md tooltip-bottom-left" [class.invalid]="instanceEndpointInput.invalid && (instanceEndpointInput.dirty || instanceEndpointInput.touched)">
+            <input type="text" id="instanceEndpointInput" placeholder="Enter endpoint of the instance" required name="instanceEndpoint"
+              [(ngModel)]="model.endpoint" #instanceEndpointInput="ngModel" size="33">
+            <span class="tooltip-content">
+              Endpoint is required.
+            </span>
+          </label>
+                </div>
+                <div class="form-group">
+                    <label>Authorization Mode</label>
+                    <div class="radio-inline">
+                        <input type="radio" name="auth_mode" id="basic_mode" value="BASIC" disabled [ngModel]="authMode">
+                        <label for="basic_mode">Basic</label>
+                    </div>
+                    <div class="radio-inline">
+                        <input type="radio" name="auth_mode" id="token_mode" value="OAUTH" disabled [ngModel]="authMode">
+                        <label for="token_mode">OAuth Token</label>
+                    </div>
+                    <div class="radio-inline">
+                        <input type="radio" name="auth_mode" id="custom_mode" value="CUSTOM" disabled [ngModel]="authMode">
+                        <label for="custom_mode">Customized</label>
+                    </div>
+                </div>
+            </section>
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-outline" (click)="cancel()">Cancel</button>
+        <button type="button" class="btn btn-primary" (click)="submit()">Ok</button>
+    </div>
+</clr-modal>

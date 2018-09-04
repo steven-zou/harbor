@@ -11,3 +11,9 @@
     justify-content: flex-end;
     margin-right: $right-margin;
 }
+
+@mixin square($edge) {
+    width: $edge;
+    height: $edge;
+    min-height: $edge;
+}

@@ -5,6 +5,8 @@ import { DistributionProvidersComponent } from './distribution-providers/distrib
 import { DistributionSetupModalComponent } from './distribution-setup-modal/distribution-setup-modal.component';
 import { DistributionService } from './distribution.service';
 import { SharedModule } from "../shared/shared.module";
+import { DistributionProviderDriversComponent } from './distribution-provider-drivers/distribution-provider-drivers.component';
+import { DistributionProviderInstancesComponent } from './distribution-provider-instances/distribution-provider-instances.component';
 
 @NgModule({
   imports: [
@@ -14,7 +16,9 @@ import { SharedModule } from "../shared/shared.module";
   declarations: [
     DistributionHistoryComponent, 
     DistributionProvidersComponent, 
-    DistributionSetupModalComponent],
+    DistributionSetupModalComponent, 
+    DistributionProviderDriversComponent,
+    DistributionProviderInstancesComponent],
   providers: [DistributionService]
 })
 export class DistributionModule { }

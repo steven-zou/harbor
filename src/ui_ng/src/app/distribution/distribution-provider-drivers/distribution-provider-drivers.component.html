@@ -1,0 +1,13 @@
+<div class="card-container">
+    <div class="card-override" *ngFor="let p of providers">
+        <a href="javascript:void(0);" class="card clickable" (click)="createInstance(p)">
+            <div class="card-block">
+                <h3 class="card-title">{{ p.name }} : {{ p.version }}</h3>
+                <p class="card-text">{{ p.source }}</p>
+            </div>
+            <div class="card-img card-img-override">
+                <img src="{{ p.icon }}" alt="{{ p.name }}">
+            </div>
+        </a>
+    </div>
+</div>

@@ -25,7 +25,7 @@ import { TranslateService } from "@ngx-translate/core";
 import { AppConfigService } from './app-config.service';
 import {SkinableConfig} from "./skinable-config.service";
 import { ProjectConfigComponent } from './project/project-config/project-config.component';
-import { DistributionModule } from './distribution/distribution.module'
+import { DistributionModule } from './distribution/distribution.module';
 
 export function initConfig(configService: AppConfigService, skinableService: SkinableConfig) {
     return () => {
