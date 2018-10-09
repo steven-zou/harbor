@@ -1,12 +1,17 @@
 package provider
 
-//Instance represents one working node of specified provider.
-type Instance struct {
-	//Based on which driver
-	Provider Driver
+import "github.com/goharbor/harbor/src/distribution/auth"
 
-	//The service endpoint of this instance
+// Instance represents one working node of specified provider.
+type Instance struct {
+	// Based on which driver, identified by ID
+	Provider string
+
+	// The service endpoint of this instance
 	Endpoint string
+
+	// The credential data if exists
+	Credential *auth.Credential
 
 	//The health status
 	Status string
