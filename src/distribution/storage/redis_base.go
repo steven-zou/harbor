@@ -21,6 +21,18 @@ type RedisBase struct {
 	namespace string
 }
 
+// NewRedisBase is constructor of RedisBase
+func NewRedisBase(pool *redis.Pool, namespace string) *RedisBase {
+	if pool == nil || len(namespace) == 0 {
+		return nil
+	}
+
+	return &RedisBase{
+		pool:      pool,
+		namespace: namespace,
+	}
+}
+
 // Get the object with the specified key
 func (rb *RedisBase) Get(key string) (RawJSON, error) {
 	if len(key) == 0 {
@@ -146,10 +158,10 @@ func (rb *RedisBase) List(queryParam *QueryParam) ([]RawJSON, error) {
 	}
 
 	// Desc ordered
-	start := (pages - page) * pageSize
-	end := (int)(start + 24)
-	if end >= (int)(size) {
-		end = -1
+	end := (size - 1) - (int64)((page-1)*pageSize)
+	start := end - (int64)(pageSize) + 1
+	if start < 0 {
+		start = 0
 	}
 
 	conn := rb.pool.Get()
@@ -170,7 +182,7 @@ func (rb *RedisBase) List(queryParam *QueryParam) ([]RawJSON, error) {
 	for _, jsonText := range rawJSONs {
 		shouldApppend := true
 
-		if len(queryParam.Keyword) > 0 {
+		if queryParam != nil && len(queryParam.Keyword) > 0 {
 			if !strings.Contains(jsonText, queryParam.Keyword) {
 				shouldApppend = false
 			}
