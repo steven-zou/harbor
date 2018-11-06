@@ -204,6 +204,23 @@ func (rb *RedisBase) Size() (int64, error) {
 	return redis.Int64(conn.Do("ZCARD", storageListKey(rb.namespace)))
 }
 
+// Exists checks the existence of the object by key
+func (rb *RedisBase) Exists(key string) bool {
+	if len(key) == 0 {
+		return false
+	}
+
+	conn := rb.pool.Get()
+	defer conn.Close()
+
+	ret, err := redis.Int(conn.Do("HEXISTS", storageIndexKey(rb.namespace), key))
+	if err != nil {
+		return false
+	}
+
+	return ret == 1
+}
+
 func toJSON(object interface{}) (RawJSON, error) {
 	jsonData, err := json.Marshal(object)
 	if err != nil {
