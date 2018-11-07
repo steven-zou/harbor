@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/goharbor/harbor/src/distribution/models"
 	"github.com/goharbor/harbor/src/distribution/storage"
 	"github.com/goharbor/harbor/src/distribution/tests"
 )
@@ -113,8 +114,8 @@ func mockOne(rs *RedisStorage) (string, error) {
 	return id, nil
 }
 
-func giveMeMetadata() *Metadata {
-	return &Metadata{
+func giveMeMetadata() *models.Metadata {
+	return &models.Metadata{
 		Provider:       "Dragonfly",
 		Endpoint:       "http://localhost/endpoint",
 		AuthMode:       "BASIC",

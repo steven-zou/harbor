@@ -8,7 +8,7 @@ import (
 
 // CustomAuthHandler handle the custom auth mode.
 type CustomAuthHandler struct {
-	BaseHandler
+	*BaseHandler
 }
 
 // Mode implements @Handler.Mode

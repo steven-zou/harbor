@@ -8,7 +8,7 @@ import (
 
 // TokenAuthHandler handles the OAuth auth mode.
 type TokenAuthHandler struct {
-	BaseHandler
+	*BaseHandler
 }
 
 // Mode implements @Handler.Mode

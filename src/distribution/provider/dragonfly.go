@@ -8,6 +8,7 @@ import (
 
 	"github.com/goharbor/harbor/src/distribution/auth"
 	"github.com/goharbor/harbor/src/distribution/client"
+	"github.com/goharbor/harbor/src/distribution/models"
 )
 
 const (
@@ -27,10 +28,10 @@ type dragonflyResponseData struct {
 	Status string `json:"status,omitempty"`
 }
 
-//DragonflyDriver implements the provider driver interface for Alibaba dragonfly.
-//More details, please refer to https://github.com/alibaba/Dragonfly
+// DragonflyDriver implements the provider driver interface for Alibaba dragonfly.
+// More details, please refer to https://github.com/alibaba/Dragonfly
 type DragonflyDriver struct {
-	instance *Instance
+	instance *models.Metadata
 }
 
 // Self implements @Driver.Self.
@@ -46,14 +47,14 @@ func (dd *DragonflyDriver) Self() *Metadata {
 	}
 }
 
-// GetHealthStatus implements @Driver.GetHealthStatus.
-func (dd *DragonflyDriver) GetHealthStatus() (*DriverStatus, error) {
+// GetHealth implements @Driver.GetHealth.
+func (dd *DragonflyDriver) GetHealth() (*DriverStatus, error) {
 	if dd.instance == nil {
-		return nil, errors.New("no instance attached")
+		return nil, errors.New("missing instance metadata")
 	}
 
 	url := fmt.Sprintf("%s/%s", strings.TrimSuffix(dd.instance.Endpoint, "/"), healthCheckEndpoint)
-	bytes, err := client.DefaultHTTPClient.Get(url, dd.instance.Credential, nil, nil)
+	bytes, err := client.DefaultHTTPClient.Get(url, dd.getCred(), nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -70,13 +71,13 @@ func (dd *DragonflyDriver) GetHealthStatus() (*DriverStatus, error) {
 		health.Status = DriverStatusUnHealthy
 	}
 
-	return status, nil
+	return health, nil
 }
 
-// PreheatImage implements @Driver.PreheatImage.
-func (dd *DragonflyDriver) PreheatImage(preheatingImage *PreheatImage) (*PreheatingStatus, error) {
+// Preheat implements @Driver.Preheat.
+func (dd *DragonflyDriver) Preheat(preheatingImage *PreheatImage) (*PreheatingStatus, error) {
 	if dd.instance == nil {
-		return nil, errors.New("no instance attached")
+		return nil, errors.New("missing instance metadata")
 	}
 
 	if preheatingImage == nil {
@@ -89,7 +90,7 @@ func (dd *DragonflyDriver) PreheatImage(preheatingImage *PreheatImage) (*Preheat
 	}
 
 	url := fmt.Sprintf("%s/%s", strings.TrimSuffix(dd.instance.Endpoint, "/"), preheatEndpoint)
-	bytes, err := client.DefaultHTTPClient.Post(url, dd.instance.Credential, body, nil)
+	bytes, err := client.DefaultHTTPClient.Post(url, dd.getCred(), body, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -112,10 +113,10 @@ func (dd *DragonflyDriver) PreheatImage(preheatingImage *PreheatImage) (*Preheat
 	}, nil
 }
 
-// CheckPreheatingStatus implements @Driver.CheckPreheatingStatus.
-func (dd *DragonflyDriver) CheckPreheatingStatus(taskID string) (*PreheatingStatus, error) {
+// CheckProgress implements @Driver.CheckProgress.
+func (dd *DragonflyDriver) CheckProgress(taskID string) (*PreheatingStatus, error) {
 	if dd.instance == nil {
-		return nil, errors.New("no instance attached")
+		return nil, errors.New("missing instance metadata")
 	}
 
 	if len(taskID) == 0 {
@@ -123,7 +124,7 @@ func (dd *DragonflyDriver) CheckPreheatingStatus(taskID string) (*PreheatingStat
 	}
 
 	url := fmt.Sprintf("%s/%s", strings.TrimSuffix(dd.instance.Endpoint, "/"), preheatTaskEndpoint)
-	bytes, err := client.DefaultHTTPClient.Get(url, dd.instance.Credential, nil, nil)
+	bytes, err := client.DefaultHTTPClient.Get(url, dd.getCred(), nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -146,11 +147,9 @@ func (dd *DragonflyDriver) CheckPreheatingStatus(taskID string) (*PreheatingStat
 	}, nil
 }
 
-// AttachInstance attaches an instacne to the driver.
-func (dd *DragonflyDriver) AttachInstance(instance *Instance) error {
-	if instance == nil {
-		return errors.New("nil instance is not allowed")
+func (dd *DragonflyDriver) getCred() *auth.Credential {
+	return &auth.Credential{
+		dd.instance.AuthMode,
+		dd.instance.AuthData,
 	}
-
-	dd.instance = instance
 }

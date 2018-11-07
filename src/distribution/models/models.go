@@ -1,4 +1,4 @@
-package instance
+package models
 
 // Metadata represents the basic info of one working node for the specified provider.
 type Metadata struct {
@@ -28,4 +28,13 @@ type Metadata struct {
 
 	// Append more described data if needed
 	Extensions map[string]string
+}
+
+// HistoryRecord represents one record of the image preheating process.
+type HistoryRecord struct {
+	Image     string
+	Timestamp int64
+	Status    string
+	Provider  string
+	Instance  string
 }

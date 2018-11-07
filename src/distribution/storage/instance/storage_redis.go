@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/garyburd/redigo/redis"
+	"github.com/goharbor/harbor/src/distribution/models"
 	"github.com/goharbor/harbor/src/distribution/storage"
 )
 
@@ -25,7 +26,7 @@ func NewRedisStorage(pool *redis.Pool, namespace string) *RedisStorage {
 }
 
 // Save implements @Storage.Save
-func (rs *RedisStorage) Save(inst *Metadata) (string, error) {
+func (rs *RedisStorage) Save(inst *models.Metadata) (string, error) {
 	if inst == nil {
 		return "", errors.New("nil instance metadata")
 	}
@@ -53,7 +54,7 @@ func (rs *RedisStorage) Delete(id string) error {
 }
 
 // Update implements @Storage.Update
-func (rs *RedisStorage) Update(inst *Metadata) error {
+func (rs *RedisStorage) Update(inst *models.Metadata) error {
 	if inst == nil {
 		return errors.New("nil instance metadata")
 	}
@@ -70,7 +71,7 @@ func (rs *RedisStorage) Update(inst *Metadata) error {
 }
 
 // Get implements @Storage.Get
-func (rs *RedisStorage) Get(id string) (*Metadata, error) {
+func (rs *RedisStorage) Get(id string) (*models.Metadata, error) {
 	if !rs.redisBase.Exists(id) {
 		return nil, storage.ErrObjectNotFound
 	}
@@ -80,7 +81,7 @@ func (rs *RedisStorage) Get(id string) (*Metadata, error) {
 		return nil, err
 	}
 
-	inst := &Metadata{}
+	inst := &models.Metadata{}
 	if err := json.Unmarshal([]byte(raw), inst); err != nil {
 		return nil, err
 	}
@@ -89,15 +90,15 @@ func (rs *RedisStorage) Get(id string) (*Metadata, error) {
 }
 
 // List implements @Storage.List
-func (rs *RedisStorage) List(param *storage.QueryParam) ([]*Metadata, error) {
+func (rs *RedisStorage) List(param *storage.QueryParam) ([]*models.Metadata, error) {
 	raws, err := rs.redisBase.List(param)
 	if err != nil {
 		return nil, err
 	}
 
-	results := []*Metadata{}
+	results := []*models.Metadata{}
 	for _, raw := range raws {
-		m := &Metadata{}
+		m := &models.Metadata{}
 		if err := json.Unmarshal([]byte(raw), m); err != nil {
 			return nil, err
 		}

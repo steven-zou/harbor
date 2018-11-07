@@ -8,7 +8,7 @@ import (
 
 // BasicAuthHandler handle the basic auth mode.
 type BasicAuthHandler struct {
-	BaseHandler
+	*BaseHandler
 }
 
 // Mode implements @Handler.Mode

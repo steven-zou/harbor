@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/goharbor/harbor/src/distribution/models"
 	"github.com/goharbor/harbor/src/distribution/storage"
 
 	"github.com/goharbor/harbor/src/distribution/tests"
@@ -89,9 +90,9 @@ func TestLoadHistory(t *testing.T) {
 	}
 }
 
-func giveMeHistory() *HistroryRecord {
+func giveMeHistory() *models.HistoryRecord {
 	t := time.Now().UnixNano()
-	return &HistroryRecord{
+	return &models.HistoryRecord{
 		Image:     fmt.Sprintf("image_%d", t),
 		Timestamp: time.Now().Unix(),
 		Status:    "SUCCESS",
@@ -100,6 +101,6 @@ func giveMeHistory() *HistroryRecord {
 	}
 }
 
-func giveMeEmptyHistory() *HistroryRecord {
-	return &HistroryRecord{}
+func giveMeEmptyHistory() *models.HistoryRecord {
+	return &models.HistoryRecord{}
 }

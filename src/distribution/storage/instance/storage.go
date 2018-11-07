@@ -1,6 +1,9 @@
 package instance
 
-import "github.com/goharbor/harbor/src/distribution/storage"
+import (
+	"github.com/goharbor/harbor/src/distribution/models"
+	"github.com/goharbor/harbor/src/distribution/storage"
+)
 
 // Storage is responsible for storing the instances
 type Storage interface {
@@ -11,7 +14,7 @@ type Storage interface {
 	// If succeed, the uuid of the saved instance is returned;
 	// otherwise, a non nil error is returned
 	//
-	Save(inst *Metadata) (string, error)
+	Save(inst *models.Metadata) (string, error)
 
 	// Delete the specified instance
 	//
@@ -29,7 +32,7 @@ type Storage interface {
 	// If succeed, a nil error is returned;
 	// otherwise, a non nil error is returned
 	//
-	Update(inst *Metadata) error
+	Update(inst *models.Metadata) error
 
 	// Get the instance with the ID
 	//
@@ -38,7 +41,7 @@ type Storage interface {
 	// If succeed, a non nil Metadata is returned;
 	// otherwise, a non nil error is returned
 	//
-	Get(id string) (*Metadata, error)
+	Get(id string) (*models.Metadata, error)
 
 	// Query the instacnes by the param
 	//
@@ -47,5 +50,5 @@ type Storage interface {
 	// If succeed, an instance metadata list is returned;
 	// otherwise, a non nil error is returned
 	//
-	List(param *storage.QueryParam) ([]*Metadata, error)
+	List(param *storage.QueryParam) ([]*models.Metadata, error)
 }

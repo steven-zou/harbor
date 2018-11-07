@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/garyburd/redigo/redis"
+	"github.com/goharbor/harbor/src/distribution/models"
 	"github.com/goharbor/harbor/src/distribution/storage"
 )
 
@@ -29,7 +30,7 @@ func NewRedisStorage(pool *redis.Pool, namespace string) *RedisStorage {
 }
 
 // AppendHistory implements @Storage.AppendHistory
-func (rs *RedisStorage) AppendHistory(record *HistroryRecord) error {
+func (rs *RedisStorage) AppendHistory(record *models.HistoryRecord) error {
 	if err := validHistoryRecord(record); err != nil {
 		return err
 	}
@@ -41,15 +42,15 @@ func (rs *RedisStorage) AppendHistory(record *HistroryRecord) error {
 }
 
 // LoadHistories implements @Storage.LoadHistories
-func (rs *RedisStorage) LoadHistories(params *storage.QueryParam) ([]*HistroryRecord, error) {
+func (rs *RedisStorage) LoadHistories(params *storage.QueryParam) ([]*models.HistoryRecord, error) {
 	rawData, err := rs.redisBase.List(params)
 	if err != nil {
 		return nil, err
 	}
 
-	results := []*HistroryRecord{}
+	results := []*models.HistoryRecord{}
 	for _, jsonText := range rawData {
-		r := &HistroryRecord{}
+		r := &models.HistoryRecord{}
 		if err := json.Unmarshal([]byte(jsonText), r); err != nil {
 			return nil, err
 		}
@@ -60,7 +61,7 @@ func (rs *RedisStorage) LoadHistories(params *storage.QueryParam) ([]*HistroryRe
 	return results, nil
 }
 
-func validHistoryRecord(record *HistroryRecord) error {
+func validHistoryRecord(record *models.HistoryRecord) error {
 	if record == nil {
 		return errors.New("nil history record")
 	}

@@ -27,9 +27,6 @@ var DefaultHTTPClient = NewHTTPClient()
 type HTTPClient struct {
 	// http client
 	internalClient *http.Client
-
-	// auth manager
-	authManager auth.Manager
 }
 
 // NewHTTPClient creates a new http client.
@@ -48,7 +45,6 @@ func NewHTTPClient() *HTTPClient {
 
 	return &HTTPClient{
 		internalClient: client,
-		authManager:    auth.NewBaseManager(),
 	}
 }
 
@@ -163,7 +159,7 @@ func (hc *HTTPClient) Post(url string, cred *auth.Credential, body interface{}, 
 
 func (hc *HTTPClient) authorize(req *http.Request, cred *auth.Credential) error {
 	if cred != nil {
-		authorizer, ok := hc.authManager.GetAuthHandler(cred.Mode)
+		authorizer, ok := auth.GetAuthHandler(cred.Mode)
 		if !ok {
 			return fmt.Errorf("no auth handler registered for mode: %s", cred.Mode)
 		}
