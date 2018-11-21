@@ -1,55 +1,391 @@
 package distribution
 
 import (
-	"github.com/vmware/harbor/src/distribution/provider"
-	"github.com/vmware/harbor/src/distribution/storage"
+	"context"
+	"errors"
+	"fmt"
+	"net/url"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/goharbor/harbor/src/common/utils/log"
+
+	"github.com/goharbor/harbor/src/ui/service/token"
+
+	"github.com/garyburd/redigo/redis"
+	"github.com/goharbor/harbor/src/distribution/models"
+	"github.com/goharbor/harbor/src/distribution/provider"
+	"github.com/goharbor/harbor/src/distribution/storage/history"
+	"github.com/goharbor/harbor/src/distribution/storage/instance"
+	"github.com/goharbor/harbor/src/ui/config"
+
+	rtoken "github.com/docker/distribution/registry/auth/token"
 )
 
-//CompositePreheatingResults handle preheating results among multiple providers
-//Key is the ID of the provider instance.
+const (
+	historyNamespace  = "dist_history"
+	instanceNamespace = "dist_instance"
+	envRedisURL       = "_REDIS_URL" // same with core
+)
+
+// DefaultController is default controller
+var DefaultController Controller
+
+// CompositePreheatingResults handle preheating results among multiple providers
+// Key is the ID of the provider instance.
 type CompositePreheatingResults map[string][]*provider.PreheatingStatus
 
-//Controller defines related top interfaces to handle the workflow of
-//the image distribution.
+// Controller defines related top interfaces to handle the workflow of
+// the image distribution.
 type Controller interface {
-	//Get all the supported distribution providers
-	//If succeed, an provider driver array will be returned.
-	//Otherwise, a non nil error will be returned
-	GetAvailableProviders() ([]provider.Driver, error)
-
-	//Get all the setup instances of distribution providers
-	//If succeed, an provider instance array will be returned.
-	//Otherwise, a non nil error will be returned
+	// Get all the supported distribution providers
 	//
-	//If onlyEnabled is set to true, only return the enabled ones.
-	GetInstances(onlyEnabled bool) ([]*provider.Instance, error)
+	// If succeed, an metadata of provider list will be returned.
+	// Otherwise, a non nil error will be returned
+	//
+	GetAvailableProviders() ([]*provider.Metadata, error)
 
-	//Create a new instance for the specified provider.
-	//Any problems met, a non nil error will be returned.
-	CreateInstance(instance *provider.Instance) error
+	// List all the setup instances of distribution providers
+	//
+	// params *models.QueryParam : parameters for querying
+	//
+	// If succeed, an provider instance list will be returned.
+	// Otherwise, a non nil error will be returned
+	//
+	ListInstances(params *models.QueryParam) ([]*models.Metadata, error)
 
-	//Delete the specified provider instance.
-	//Any problems met, a non nil error will be returned.
-	DeleteInstance(ID string) error
+	// Get the metadata of the specified instance
+	//
+	// id string : ID of the instance being deleted
+	//
+	// If succeed, the metadata with nil error are returned
+	// Otherwise, a non nil error is returned
+	//
+	GetInstance(id string) (*models.Metadata, error)
 
-	//Enable the specified instance if it is not enabled yet.
-	//Any problems met, a non nil error will be returned.
-	EnableInstance(ID string) error
+	// Create a new instance for the specified provider.
+	//
+	// If succeed, the ID of the instance will be returned.
+	// Any problems met, a non nil error will be returned.
+	//
+	CreateInstance(instance *models.Metadata) (string, error)
 
-	//Disable the specified instance if it is enabled.
-	//Any problems met, a non nil error will be returned.
-	DisableInstance(ID string) error
+	// Delete the specified provider instance.
+	//
+	// id string : ID of the instance being deleted
+	//
+	// Any problems met, a non nil error will be returned.
+	//
+	DeleteInstance(id string) error
 
-	//Preheat images.
-	//If multiple images are provided, the status of each image will be returned respectively.
-	//One preheating failure will not cause the whole process fail.
-	//If meet internal problems rather than failure results returned by the providers,
-	//an non nil error will be returned.
-	PreheatImages(images []*provider.PreheatImage) (CompositePreheatingResults, error)
+	// Update the instance with incremental way;
+	// Including update the enabled flag of the instance.
+	//
+	// id string                     : ID of the instance being updated
+	// properties models.PropertySet : The properties being updated
+	//
+	// Any problems met, a non nil error will be returned
+	//
+	UpdateInstance(id string, properties models.PropertySet) error
 
-	//Load the history records on top of the query parameters.
-	LoadHistoryRecords(params storage.QueryParam) ([]*storage.HistroryRecord, error)
+	// Preheat images.
+	//
+	// If multiple images are provided, the status of each image will be returned respectively.
+	// One preheating failure will not cause the whole process fail.
+	// If meet internal problems rather than failure results returned by the providers,
+	// an non nil error will be returned.
+	//
+	PreheatImages(images ...models.ImageRepository) (CompositePreheatingResults, error)
+
+	// Load the history records on top of the query parameters.
+	//
+	// params *models.QueryParam : parameters for querying
+	//
+	LoadHistoryRecords(params *models.QueryParam) ([]*models.HistoryRecord, error)
 }
 
-//DefaultController is the default implementation of Controller interface.
-type DefaultController struct{}
+// CoreController is the default implementation of Controller interface.
+//
+type CoreController struct {
+	// For history
+	hStore history.Storage
+
+	// For instance
+	iStore instance.Storage
+
+	// Monitor and update the progress of tasks and health of instances
+	monitor *Monitor
+}
+
+// NewCoreController is constructor of controller
+func NewCoreController(ctx context.Context) (*CoreController, error) {
+	addr, ok := redisAddr()
+	if !ok {
+		return nil, errors.New("malformat redis address")
+	}
+
+	pool := redisPool(addr)
+	iStore := instance.NewRedisStorage(pool, instanceNamespace)
+	if iStore == nil {
+		return nil, errors.New("nil instance storage")
+	}
+	hStore := history.NewRedisStorage(pool, historyNamespace)
+	if hStore == nil {
+		return nil, errors.New("nil history storage")
+	}
+
+	return &CoreController{
+		iStore:  iStore,
+		hStore:  hStore,
+		monitor: NewMonitor(ctx, iStore, hStore),
+	}, nil
+}
+
+// GetAvailableProviders implements @Controller.GetAvailableProviders
+func (cc *CoreController) GetAvailableProviders() ([]*provider.Metadata, error) {
+	return provider.ListProviders()
+}
+
+// ListInstances implements @Controller.ListInstances
+func (cc *CoreController) ListInstances(params *models.QueryParam) ([]*models.Metadata, error) {
+	return cc.iStore.List(params)
+}
+
+// CreateInstance implements @Controller.CreateInstance
+func (cc *CoreController) CreateInstance(instance *models.Metadata) (string, error) {
+	if instance == nil {
+		return "", errors.New("nil instance object provided")
+	}
+
+	return cc.iStore.Save(instance)
+}
+
+// DeleteInstance implements @Controller.DeleteInstance
+func (cc *CoreController) DeleteInstance(id string) error {
+	if len(id) == 0 {
+		return errors.New("empty ID")
+	}
+
+	return cc.iStore.Delete(id)
+}
+
+// UpdateInstance implements @Controller.UpdateInstance
+func (cc *CoreController) UpdateInstance(id string, properties models.PropertySet) error {
+	if len(id) == 0 {
+		return errors.New("empty ID")
+	}
+
+	if len(properties) == 0 {
+		return errors.New("no properties provided to update")
+	}
+
+	metadata, err := cc.iStore.Get(id)
+	if err != nil {
+		return err
+	}
+
+	if err := properties.Apply(metadata); err != nil {
+		return err
+	}
+
+	return cc.iStore.Update(metadata)
+}
+
+// PreheatImages implements @Controller.PreheatImages
+func (cc *CoreController) PreheatImages(images ...models.ImageRepository) (CompositePreheatingResults, error) {
+	if len(images) == 0 {
+		return nil, errors.New("no images provided to preheat")
+	}
+
+	// Valid the images
+	for _, img := range images {
+		if !img.Valid() {
+			return nil, fmt.Errorf("%s is not a valid image repository", img)
+		}
+	}
+
+	// Directly dispatch to all the instances
+	// TODO: Use async way in future
+	instances, err := cc.iStore.List(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// No instances
+	if len(instances) == 0 {
+		return nil, errors.New("no distribution provider instances")
+	}
+
+	results := make(CompositePreheatingResults)
+	for _, inst := range instances {
+		// Instance must be enabled and healthy
+		if inst.Enabled && inst.Status != provider.DriverStatusUnHealthy {
+			allStatus := []*provider.PreheatingStatus{}
+			results[inst.ID] = allStatus
+
+			factory, ok := provider.GetProvider(inst.Provider)
+			if !ok {
+				// Append error
+				err := fmt.Errorf("the specified provider %s for instance %s is not registered", inst.Provider, inst.ID)
+				appendStatus(allStatus, "-", models.PreheatingStatusFail, err)
+				continue
+			}
+
+			p, err := factory(inst)
+			if err != nil {
+				// Append error
+				appendStatus(allStatus, "-", models.PreheatingStatusFail, fmt.Errorf("initialize provider error: %s", err))
+				continue
+			}
+
+			// Dispatch
+			for _, img := range images {
+				preheatImg, err := buildImageData(img)
+				if err != nil {
+					appendStatus(allStatus, string(img), models.PreheatingStatusFail, err)
+					continue
+				}
+
+				pStatus, err := p.Preheat(preheatImg)
+				if err != nil {
+					appendStatus(allStatus, string(img), models.PreheatingStatusFail, err)
+					continue
+				}
+
+				// Append a new history record
+				if err := cc.hStore.AppendHistory(&models.HistoryRecord{
+					TaskID:    pStatus.TaskID,
+					Image:     string(img),
+					Timestamp: time.Now().Unix(),
+					Status:    pStatus.Status,
+					Provider:  inst.Provider,
+					Instance:  inst.ID,
+				}); err != nil {
+					// Just log it
+					log.Errorf("save history record error: %s", err)
+				} else {
+					// Monitor it
+					cc.monitor.WatchProgress(inst.ID, pStatus.TaskID)
+				}
+
+				allStatus = append(allStatus, pStatus)
+			}
+		}
+	}
+
+	return results, nil
+}
+
+// LoadHistoryRecords implements @Controller.LoadHistoryRecords
+func (cc *CoreController) LoadHistoryRecords(params *models.QueryParam) ([]*models.HistoryRecord, error) {
+	return cc.hStore.LoadHistories(params)
+}
+
+// GetInstance implements @Controller.GetInstance
+func (cc *CoreController) GetInstance(id string) (*models.Metadata, error) {
+	return cc.iStore.Get(id)
+}
+
+// Init the distribution providers
+func Init(ctx context.Context) {
+	if DefaultController == nil {
+		if c, err := NewCoreController(ctx); err != nil {
+			log.Fatalf("initialize distribution controller error: %s", err)
+		} else {
+			c.monitor.Start()
+			DefaultController = c
+		}
+	}
+}
+
+// Append status data to the list
+func appendStatus(allStatus []*provider.PreheatingStatus, taskID, status string, err error) {
+	allStatus = append(allStatus, &provider.PreheatingStatus{
+		TaskID: taskID,
+		Status: status,
+		Error:  err,
+	})
+}
+
+// convert the image to preheat image by adding more required data
+func buildImageData(image models.ImageRepository) (*provider.PreheatImage, error) {
+	extEndpoint, err := config.ExtEndpoint()
+	if err != nil {
+		return nil, err
+	}
+
+	extURL, err := config.ExtURL()
+	if err != nil {
+		return nil, err
+	}
+
+	access := []*rtoken.ResourceActions{&rtoken.ResourceActions{
+		Type:    "repository",
+		Name:    fmt.Sprintf("%s/%s", extURL, image.Name()),
+		Actions: []string{"pull"},
+	}}
+
+	tk, err := token.MakeToken("distributor", token.Registry, access)
+	if err != nil {
+		return nil, err
+	}
+
+	fullURL := fmt.Sprintf("%s/v2/%s/manifests/%s", extEndpoint, image.Name(), image.Tag())
+
+	return &provider.PreheatImage{
+		Type: models.PreheatingImageTypeImage,
+		URL:  fullURL,
+		Headers: map[string]interface{}{
+			"Authorization": fmt.Sprintf("Bearer %s", tk.Token),
+		},
+	}, nil
+}
+
+// redisPool used to create a redis pool
+func redisPool(addr string) *redis.Pool {
+	redisPool := &redis.Pool{
+		MaxActive: 6,
+		MaxIdle:   6,
+		Wait:      true,
+		Dial: func() (redis.Conn, error) {
+			return redis.DialURL(
+				addr,
+				redis.DialConnectTimeout(30*time.Second),
+				redis.DialReadTimeout(15*time.Second),
+				redis.DialWriteTimeout(15*time.Second),
+			)
+		},
+	}
+
+	return redisPool
+}
+
+// get redis address
+func redisAddr() (string, bool) {
+	rawAddr := os.Getenv(envRedisURL)
+	if len(rawAddr) == 0 {
+		return "", false
+	}
+
+	segments := strings.SplitN(rawAddr, ",", 3)
+	if len(segments) <= 1 {
+		return "", false
+	}
+
+	addrParts := []string{}
+	addrParts = append(addrParts, "redis://")
+	if len(segments) >= 3 {
+		addrParts = append(addrParts, fmt.Sprintf("%s:%s@", "arbitrary_username", addrParts[2]))
+	}
+	addrParts = append(addrParts, segments[0], "/0") // use default db index 0
+
+	//verify
+	redisAddr := strings.Join(addrParts, "")
+	_, err := url.Parse(redisAddr)
+	if err != nil {
+		return "", false
+	}
+
+	return redisAddr, true
+}

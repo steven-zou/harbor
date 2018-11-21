@@ -6,24 +6,6 @@ const (
 
 	// DriverStatusUnHealthy represents the unhealthy status
 	DriverStatusUnHealthy = "Unhealthy"
-
-	// PreheatingImageTypeImage defines the 'image' type of preheating images
-	PreheatingImageTypeImage = "image"
-
-	// PreheatingStatusPending means the preheating is waiting for starting
-	PreheatingStatusPending = "PENDING"
-
-	// PreheatingStatusRunning means the preheating is ongoing
-	PreheatingStatusRunning = "RUNNING"
-
-	// PreheatingStatusSuccess means the preheating is success
-	PreheatingStatusSuccess = "SUCCESS"
-
-	// PreheatingStatusError means the preheating is failed with error
-	PreheatingStatusError = "ERROR"
-
-	// PreheatingStatusFail means the preheating is failed
-	PreheatingStatusFail = "FAIL"
 )
 
 // Driver defines the capabilities one distribution provider should have.

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/garyburd/redigo/redis"
 	"github.com/goharbor/harbor/src/distribution/models"
@@ -35,14 +34,36 @@ func (rs *RedisStorage) AppendHistory(record *models.HistoryRecord) error {
 		return err
 	}
 
-	// no id needed for history record
-	// use time ticks as a placeholder key
-	id := fmt.Sprintf("%d", time.Now().UnixNano())
-	return rs.redisBase.Save(id, record)
+	return rs.redisBase.Save(record.TaskID, record)
+}
+
+// UpdateStatus implements @Storage.UpdateStatus
+func (rs *RedisStorage) UpdateStatus(taskID string, status models.TrackStatus) error {
+	if len(taskID) == 0 {
+		return errors.New("empty task ID of history record")
+	}
+
+	if !status.Valid() {
+		return fmt.Errorf("invalid status %s", status)
+	}
+
+	raw, err := rs.redisBase.Get(taskID)
+	if err != nil {
+		return err
+	}
+
+	hr := &models.HistoryRecord{}
+	if err := json.Unmarshal([]byte(raw), hr); err != nil {
+		return err
+	}
+
+	hr.Status = status.String()
+
+	return rs.redisBase.Save(taskID, hr)
 }
 
 // LoadHistories implements @Storage.LoadHistories
-func (rs *RedisStorage) LoadHistories(params *storage.QueryParam) ([]*models.HistoryRecord, error) {
+func (rs *RedisStorage) LoadHistories(params *models.QueryParam) ([]*models.HistoryRecord, error) {
 	rawData, err := rs.redisBase.List(params)
 	if err != nil {
 		return nil, err

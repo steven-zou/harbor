@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/garyburd/redigo/redis"
+	"github.com/goharbor/harbor/src/distribution/models"
 )
 
 // RawJSON represents the raw JSON text.
@@ -125,7 +126,7 @@ func (rb *RedisBase) Delete(key string) error {
 }
 
 // List the objects
-func (rb *RedisBase) List(queryParam *QueryParam) ([]RawJSON, error) {
+func (rb *RedisBase) List(queryParam *models.QueryParam) ([]RawJSON, error) {
 	var page, pageSize uint = 1, 25
 
 	if queryParam != nil {

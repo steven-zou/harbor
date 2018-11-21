@@ -2,7 +2,6 @@ package instance
 
 import (
 	"github.com/goharbor/harbor/src/distribution/models"
-	"github.com/goharbor/harbor/src/distribution/storage"
 )
 
 // Storage is responsible for storing the instances
@@ -45,10 +44,10 @@ type Storage interface {
 
 	// Query the instacnes by the param
 	//
-	// param *storage.QueryParam : the query params
+	// param *models.QueryParam : the query params
 	//
 	// If succeed, an instance metadata list is returned;
 	// otherwise, a non nil error is returned
 	//
-	List(param *storage.QueryParam) ([]*models.Metadata, error)
+	List(param *models.QueryParam) ([]*models.Metadata, error)
 }

@@ -90,7 +90,7 @@ func (rs *RedisStorage) Get(id string) (*models.Metadata, error) {
 }
 
 // List implements @Storage.List
-func (rs *RedisStorage) List(param *storage.QueryParam) ([]*models.Metadata, error) {
+func (rs *RedisStorage) List(param *models.QueryParam) ([]*models.Metadata, error) {
 	raws, err := rs.redisBase.List(param)
 	if err != nil {
 		return nil, err

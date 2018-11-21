@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/goharbor/harbor/src/distribution/models"
-	"github.com/goharbor/harbor/src/distribution/storage"
 
 	"github.com/goharbor/harbor/src/distribution/tests"
 )
@@ -55,7 +54,7 @@ func TestLoadHistory(t *testing.T) {
 		t.Fatalf("expect 25 history records with nil query param but got %d", len(records))
 	}
 
-	records, err = rStorage.LoadHistories(&storage.QueryParam{
+	records, err = rStorage.LoadHistories(&models.QueryParam{
 		Page:     3,
 		PageSize: 25,
 	})
@@ -66,7 +65,7 @@ func TestLoadHistory(t *testing.T) {
 		t.Fatalf("expect 0 records in page 3 but got %d", len(records))
 	}
 
-	records, err = rStorage.LoadHistories(&storage.QueryParam{
+	records, err = rStorage.LoadHistories(&models.QueryParam{
 		Page:     2,
 		PageSize: 25,
 	})
@@ -77,7 +76,7 @@ func TestLoadHistory(t *testing.T) {
 		t.Fatalf("expect 1 records in page 2 but got %d", len(records))
 	}
 
-	records, err = rStorage.LoadHistories(&storage.QueryParam{
+	records, err = rStorage.LoadHistories(&models.QueryParam{
 		Page:     1,
 		PageSize: 25,
 		Keyword:  "steven",
@@ -90,9 +89,38 @@ func TestLoadHistory(t *testing.T) {
 	}
 }
 
+func TestUpdateHistory(t *testing.T) {
+	rStorage := NewRedisStorage(pool, testingKey)
+	if rStorage == nil {
+		t.Fatal("expect non nil history redis storage object but got nil")
+	}
+
+	defer tests.Clear(pool, testingKey)
+
+	testingObj := giveMeHistory()
+	if err := rStorage.AppendHistory(testingObj); err != nil {
+		t.Fatalf("expect nil error but got %s when append valid history", err)
+	}
+
+	if err := rStorage.UpdateStatus("task_ID_1", models.PreheatingStatusFail); err != nil {
+		t.Fatal(err)
+	}
+
+	items, err := rStorage.LoadHistories(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if items[0].Status != models.PreheatingStatusFail {
+		t.Errorf("expect status '%s' but got '%s'", models.PreheatingStatusFail, items[0].Status)
+	}
+
+}
+
 func giveMeHistory() *models.HistoryRecord {
 	t := time.Now().UnixNano()
 	return &models.HistoryRecord{
+		TaskID:    "task_ID_1",
 		Image:     fmt.Sprintf("image_%d", t),
 		Timestamp: time.Now().Unix(),
 		Status:    "SUCCESS",

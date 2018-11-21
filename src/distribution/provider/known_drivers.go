@@ -1,11 +1,11 @@
 package provider
 
 // knownDrivers is static driver Factory registry
-var knownDrivers map[string]Factory = map[string]Factory{
+var knownDrivers = map[string]Factory{
 	"dragonfly": DragonflyFactory,
 }
 
-// ListProviders returns the all the registered drivers.
+// ListProviders returns all the registered drivers.
 func ListProviders() ([]*Metadata, error) {
 	results := []*Metadata{}
 

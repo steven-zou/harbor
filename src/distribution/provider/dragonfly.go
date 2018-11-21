@@ -102,14 +102,14 @@ func (dd *DragonflyDriver) Preheat(preheatingImage *PreheatImage) (*PreheatingSt
 
 	if result.Code != 200 {
 		return &PreheatingStatus{
-			Status: PreheatingStatusError,
+			Status: models.PreheatingStatusFail,
 			Error:  errors.New(result.Msg),
 		}, nil
 	}
 
 	return &PreheatingStatus{
 		TaskID: result.Data.TaskID,
-		Status: PreheatingStatusPending, // default
+		Status: models.PreheatingStatusPending, // default
 	}, nil
 }
 
@@ -136,7 +136,7 @@ func (dd *DragonflyDriver) CheckProgress(taskID string) (*PreheatingStatus, erro
 
 	if status.Code != 200 {
 		return &PreheatingStatus{
-			Status: PreheatingStatusError,
+			Status: models.PreheatingStatusFail,
 			Error:  errors.New(status.Msg),
 		}, nil
 	}
@@ -149,7 +149,7 @@ func (dd *DragonflyDriver) CheckProgress(taskID string) (*PreheatingStatus, erro
 
 func (dd *DragonflyDriver) getCred() *auth.Credential {
 	return &auth.Credential{
-		dd.instance.AuthMode,
-		dd.instance.AuthData,
+		Mode: dd.instance.AuthMode,
+		Data: dd.instance.AuthData,
 	}
 }
