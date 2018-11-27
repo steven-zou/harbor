@@ -147,7 +147,7 @@ func (m *Monitor) checkTaskProgress(instID string, taskID string) (bool, error) 
 
 	trackStatus := models.TrackStatus(pStatus.Status)
 	// Update history record
-	if err := m.hStore.UpdateStatus(taskID, trackStatus); err != nil {
+	if err := m.hStore.UpdateStatus(taskID, trackStatus, pStatus.StartTime, pStatus.FinishTime); err != nil {
 		return false, err
 	}
 
@@ -162,17 +162,19 @@ func (m *Monitor) checkInstanceHealth(inst *models.Metadata) error {
 		return err
 	}
 
-	status, err := p.GetHealth()
-	if err != nil {
-		return err
-	}
-
+	// Retrieve the checking instance
 	meta, err := m.iStore.Get(inst.ID)
 	if err != nil {
 		return err
 	}
 
-	meta.Status = status.Status
+	status, err := p.GetHealth()
+	if err != nil {
+		// Set status to unhealthy
+		meta.Status = provider.DriverStatusUnHealthy
+	} else {
+		meta.Status = status.Status
+	}
 
 	return m.iStore.Update(meta)
 }

@@ -67,7 +67,7 @@ func (rs *RedisStorage) Update(inst *models.Metadata) error {
 		return storage.ErrObjectNotFound
 	}
 
-	return rs.redisBase.Save(inst.ID, inst)
+	return rs.redisBase.Update(inst.ID, inst)
 }
 
 // Get implements @Storage.Get

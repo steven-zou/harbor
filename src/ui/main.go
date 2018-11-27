@@ -15,11 +15,14 @@
 package main
 
 import (
+	"context"
 	"encoding/gob"
 	"fmt"
 	"os"
 	"reflect"
 	"strconv"
+
+	"github.com/goharbor/harbor/src/distribution"
 
 	"github.com/goharbor/harbor/src/common/utils"
 	"github.com/goharbor/harbor/src/common/utils/log"
@@ -173,6 +176,13 @@ func main() {
 
 	log.Info("Init proxy")
 	proxy.Init()
+
+	// Init the distribution package
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	distribution.Init(ctx)
+
 	//go proxy.StartProxy()
 	beego.Run()
 }

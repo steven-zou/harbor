@@ -93,7 +93,7 @@ func (hc *HTTPClient) Get(url string, cred *auth.Credential, parmas map[string]s
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode > http.StatusCreated || res.StatusCode < http.StatusOK {
+	if (res.StatusCode / 100) != 2 {
 		// Return the server error content in the error.
 		return nil, fmt.Errorf("%s '%s' error: %d %s", http.MethodGet, res.Request.URL.String(), res.StatusCode, bytes)
 	}
@@ -149,7 +149,7 @@ func (hc *HTTPClient) Post(url string, cred *auth.Credential, body interface{}, 
 		defer res.Body.Close()
 	}
 
-	if res.StatusCode > http.StatusCreated || res.StatusCode < http.StatusOK {
+	if (res.StatusCode / 100) != 2 {
 		// Return the server error content in the error.
 		return nil, fmt.Errorf("%s '%s' error: %d %s", http.MethodGet, res.Request.URL.String(), res.StatusCode, bytes)
 	}

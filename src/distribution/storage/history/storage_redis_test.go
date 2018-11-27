@@ -102,7 +102,7 @@ func TestUpdateHistory(t *testing.T) {
 		t.Fatalf("expect nil error but got %s when append valid history", err)
 	}
 
-	if err := rStorage.UpdateStatus("task_ID_1", models.PreheatingStatusFail); err != nil {
+	if err := rStorage.UpdateStatus("task_ID_1", models.PreheatingStatusFail, "", ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -120,12 +120,13 @@ func TestUpdateHistory(t *testing.T) {
 func giveMeHistory() *models.HistoryRecord {
 	t := time.Now().UnixNano()
 	return &models.HistoryRecord{
-		TaskID:    "task_ID_1",
-		Image:     fmt.Sprintf("image_%d", t),
-		Timestamp: time.Now().Unix(),
-		Status:    "SUCCESS",
-		Provider:  "Dragonfly",
-		Instance:  fmt.Sprintf("inst_id_%d", t),
+		TaskID:     "task_ID_1",
+		Image:      fmt.Sprintf("image_%d", t),
+		StartTime:  "-",
+		FinishTime: "-",
+		Status:     "SUCCESS",
+		Provider:   "Dragonfly",
+		Instance:   fmt.Sprintf("inst_id_%d", t),
 	}
 }
 

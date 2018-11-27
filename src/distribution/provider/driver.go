@@ -64,7 +64,9 @@ type PreheatImage struct {
 // PreheatingStatus contains the related results/status of the preheating operation
 // from the provider.
 type PreheatingStatus struct {
-	TaskID string `json:"task_id"`
-	Status string
-	Error  error `json:",omitempty"`
+	TaskID     string `json:"task_id"`
+	Status     string `json:"status"`
+	Error      string `json:"error,omitempty"`
+	StartTime  string `json:"start_time"`
+	FinishTime string `json:"finish_time"`
 }

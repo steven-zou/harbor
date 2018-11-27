@@ -101,6 +101,61 @@ func (rb *RedisBase) Save(key string, object interface{}) error {
 	return nil
 }
 
+// Update the object
+func (rb *RedisBase) Update(key string, object interface{}) error {
+	if object == nil {
+		return errors.New("object is nil")
+	}
+
+	rawJSON, err := toJSON(object)
+	if err != nil {
+		return err
+	}
+	score := time.Now().UnixNano()
+
+	conn := rb.pool.Get()
+	defer conn.Close()
+
+	// Check exists
+	ret, err := redis.Int(conn.Do("HEXISTS", storageIndexKey(rb.namespace), key))
+	if err != nil {
+		return err
+	}
+
+	if ret == 0 {
+		return fmt.Errorf("%s not found", key)
+	}
+
+	// Get original score
+	oldScore, err := redis.Int64(conn.Do("HGET", storageIndexKey(rb.namespace), key))
+	if err != nil {
+		return err
+	}
+
+	// Delete and save new in one transaction
+	if err := conn.Send("MULTI"); err != nil {
+		return err
+	}
+	if err := conn.Send("ZREMRANGEBYSCORE", storageListKey(rb.namespace), oldScore, oldScore); err != nil {
+		return err
+	}
+
+	if err := conn.Send("HDEL", storageIndexKey(rb.namespace), key); err != nil {
+		return err
+	}
+	if err := conn.Send("ZADD", storageListKey(rb.namespace), score, rawJSON); err != nil {
+		return err
+	}
+	if err := conn.Send("HSET", storageIndexKey(rb.namespace), key, score); err != nil {
+		return err
+	}
+	if _, err := conn.Do("EXEC"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Delete the specified object with the key
 func (rb *RedisBase) Delete(key string) error {
 	if len(key) == 0 {
@@ -120,7 +175,21 @@ func (rb *RedisBase) Delete(key string) error {
 		score,
 	}
 
-	_, err = conn.Do("ZREMRANGEBYSCORE", args...)
+	if err := conn.Send("MULTI"); err != nil {
+		return err
+	}
+
+	if err := conn.Send("ZREMRANGEBYSCORE", args...); err != nil {
+		return err
+	}
+
+	if err := conn.Send("HDEL", storageIndexKey(rb.namespace), key); err != nil {
+		return err
+	}
+
+	if _, err := conn.Do("EXEC"); err != nil {
+		return err
+	}
 
 	return err
 }

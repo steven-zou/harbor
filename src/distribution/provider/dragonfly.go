@@ -12,20 +12,21 @@ import (
 )
 
 const (
-	healthCheckEndpoint = "/api/check"
-	preheatEndpoint     = "/api/preheat"
-	preheatTaskEndpoint = "/api/preheat/{taskId}"
+	healthCheckEndpoint = "/_ping"
+	preheatEndpoint     = "/preheats"
+	preheatTaskEndpoint = "/preheats/{task_id}"
+	dragonflyPending    = "WAITING"
 )
 
-type dragonflyResponse struct {
-	Code int
-	Msg  string                 `json:"msg,omitempty"`
-	Data *dragonflyResponseData `json:"data,omitempty"`
+type dragonflyPreheatCreateResp struct {
+	ID string `json:"id"`
 }
 
-type dragonflyResponseData struct {
-	TaskID string `json:"taskId"`
-	Status string `json:"status,omitempty"`
+type dragonflyPreheatInfo struct {
+	ID         string `json:"id"`
+	StartTime  string `json:"startTime,omitempty"`
+	FinishTime string `json:"finishTime,omitempty"`
+	Status     string
 }
 
 // DragonflyDriver implements the provider driver interface for Alibaba dragonfly.
@@ -53,25 +54,17 @@ func (dd *DragonflyDriver) GetHealth() (*DriverStatus, error) {
 		return nil, errors.New("missing instance metadata")
 	}
 
-	url := fmt.Sprintf("%s/%s", strings.TrimSuffix(dd.instance.Endpoint, "/"), healthCheckEndpoint)
-	bytes, err := client.DefaultHTTPClient.Get(url, dd.getCred(), nil, nil)
+	url := fmt.Sprintf("%s%s", strings.TrimSuffix(dd.instance.Endpoint, "/"), healthCheckEndpoint)
+	_, err := client.DefaultHTTPClient.Get(url, dd.getCred(), nil, nil)
 	if err != nil {
-		return nil, err
-	}
-	status := &dragonflyResponse{}
-	if err := json.Unmarshal(bytes, status); err != nil {
+		// Unhealthy
 		return nil, err
 	}
 
-	health := &DriverStatus{
+	// For Dragonfly, no error returned means healthy
+	return &DriverStatus{
 		Status: DriverStatusHealthy,
-	}
-
-	if status.Code != 200 {
-		health.Status = DriverStatusUnHealthy
-	}
-
-	return health, nil
+	}, nil
 }
 
 // Preheat implements @Driver.Preheat.
@@ -89,26 +82,19 @@ func (dd *DragonflyDriver) Preheat(preheatingImage *PreheatImage) (*PreheatingSt
 		return nil, err
 	}
 
-	url := fmt.Sprintf("%s/%s", strings.TrimSuffix(dd.instance.Endpoint, "/"), preheatEndpoint)
+	url := fmt.Sprintf("%s%s", strings.TrimSuffix(dd.instance.Endpoint, "/"), preheatEndpoint)
 	bytes, err := client.DefaultHTTPClient.Post(url, dd.getCred(), body, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	result := &dragonflyResponse{}
+	result := &dragonflyPreheatCreateResp{}
 	if err := json.Unmarshal(bytes, result); err != nil {
 		return nil, err
 	}
 
-	if result.Code != 200 {
-		return &PreheatingStatus{
-			Status: models.PreheatingStatusFail,
-			Error:  errors.New(result.Msg),
-		}, nil
-	}
-
 	return &PreheatingStatus{
-		TaskID: result.Data.TaskID,
+		TaskID: result.ID,
 		Status: models.PreheatingStatusPending, // default
 	}, nil
 }
@@ -123,28 +109,34 @@ func (dd *DragonflyDriver) CheckProgress(taskID string) (*PreheatingStatus, erro
 		return nil, errors.New("no task ID")
 	}
 
-	url := fmt.Sprintf("%s/%s", strings.TrimSuffix(dd.instance.Endpoint, "/"), preheatTaskEndpoint)
+	path := strings.Replace(preheatTaskEndpoint, "{task_id}", taskID, 1)
+	url := fmt.Sprintf("%s%s", strings.TrimSuffix(dd.instance.Endpoint, "/"), path)
 	bytes, err := client.DefaultHTTPClient.Get(url, dd.getCred(), nil, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	status := &dragonflyResponse{}
+	status := &dragonflyPreheatInfo{}
 	if err := json.Unmarshal(bytes, status); err != nil {
 		return nil, err
 	}
 
-	if status.Code != 200 {
-		return &PreheatingStatus{
-			Status: models.PreheatingStatusFail,
-			Error:  errors.New(status.Msg),
-		}, nil
+	if status.Status == dragonflyPending {
+		status.Status = models.PreheatingStatusPending
 	}
 
-	return &PreheatingStatus{
-		Status: status.Data.Status,
-		TaskID: status.Data.TaskID,
-	}, nil
+	res := &PreheatingStatus{
+		Status: status.Status,
+		TaskID: taskID,
+	}
+	if status.StartTime != "" {
+		res.StartTime = status.StartTime
+	}
+	if status.FinishTime != "" {
+		res.FinishTime = status.FinishTime
+	}
+
+	return res, nil
 }
 
 func (dd *DragonflyDriver) getCred() *auth.Credential {

@@ -11,7 +11,7 @@ type Storage interface {
 	AppendHistory(record *models.HistoryRecord) error
 
 	// Update the status of history
-	UpdateStatus(taskID string, status models.TrackStatus) error
+	UpdateStatus(taskID string, status models.TrackStatus, startTime, endTime string) error
 
 	// Load history records on top of the query parameters
 	// If succeed, a record list will be returned.

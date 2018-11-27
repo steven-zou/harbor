@@ -34,7 +34,7 @@ var DefaultController Controller
 
 // CompositePreheatingResults handle preheating results among multiple providers
 // Key is the ID of the provider instance.
-type CompositePreheatingResults map[string][]*provider.PreheatingStatus
+type CompositePreheatingResults map[string]*[]*provider.PreheatingStatus
 
 // Controller defines related top interfaces to handle the workflow of
 // the image distribution.
@@ -158,6 +158,23 @@ func (cc *CoreController) CreateInstance(instance *models.Metadata) (string, err
 		return "", errors.New("nil instance object provided")
 	}
 
+	// Check health before saving
+	f, ok := provider.GetProvider(instance.Provider)
+	if !ok {
+		return "", fmt.Errorf("no provider registered with name '%s'", instance.Provider)
+	}
+	p, err := f(instance)
+	if err != nil {
+		return "", err
+	}
+
+	status, err := p.GetHealth()
+	if err != nil {
+		instance.Status = provider.DriverStatusUnHealthy
+	} else {
+		instance.Status = status.Status
+	}
+
 	return cc.iStore.Save(instance)
 }
 
@@ -222,20 +239,24 @@ func (cc *CoreController) PreheatImages(images ...models.ImageRepository) (Compo
 		// Instance must be enabled and healthy
 		if inst.Enabled && inst.Status != provider.DriverStatusUnHealthy {
 			allStatus := []*provider.PreheatingStatus{}
-			results[inst.ID] = allStatus
+			results[inst.ID] = &allStatus
 
 			factory, ok := provider.GetProvider(inst.Provider)
 			if !ok {
 				// Append error
 				err := fmt.Errorf("the specified provider %s for instance %s is not registered", inst.Provider, inst.ID)
-				appendStatus(allStatus, "-", models.PreheatingStatusFail, err)
+				log.Errorf("get provider factory error: %s", err)
+
+				allStatus = append(allStatus, preheatingStatus("-", models.PreheatingStatusFail, err))
 				continue
 			}
 
 			p, err := factory(inst)
 			if err != nil {
 				// Append error
-				appendStatus(allStatus, "-", models.PreheatingStatusFail, fmt.Errorf("initialize provider error: %s", err))
+				log.Errorf("initialize provider error: %s", err)
+
+				allStatus = append(allStatus, preheatingStatus("-", models.PreheatingStatusFail, fmt.Errorf("initialize provider error: %s", err)))
 				continue
 			}
 
@@ -243,24 +264,29 @@ func (cc *CoreController) PreheatImages(images ...models.ImageRepository) (Compo
 			for _, img := range images {
 				preheatImg, err := buildImageData(img)
 				if err != nil {
-					appendStatus(allStatus, string(img), models.PreheatingStatusFail, err)
+					log.Errorf("build image data error: %s", err)
+
+					allStatus = append(allStatus, preheatingStatus(string(img), models.PreheatingStatusFail, err))
 					continue
 				}
 
 				pStatus, err := p.Preheat(preheatImg)
 				if err != nil {
-					appendStatus(allStatus, string(img), models.PreheatingStatusFail, err)
+					log.Errorf("preheat image error: %s", err)
+
+					allStatus = append(allStatus, preheatingStatus(string(img), models.PreheatingStatusFail, err))
 					continue
 				}
 
 				// Append a new history record
 				if err := cc.hStore.AppendHistory(&models.HistoryRecord{
-					TaskID:    pStatus.TaskID,
-					Image:     string(img),
-					Timestamp: time.Now().Unix(),
-					Status:    pStatus.Status,
-					Provider:  inst.Provider,
-					Instance:  inst.ID,
+					TaskID:     pStatus.TaskID,
+					Image:      string(img),
+					StartTime:  "-",
+					FinishTime: "-",
+					Status:     pStatus.Status,
+					Provider:   inst.Provider,
+					Instance:   inst.ID,
 				}); err != nil {
 					// Just log it
 					log.Errorf("save history record error: %s", err)
@@ -299,13 +325,13 @@ func Init(ctx context.Context) {
 	}
 }
 
-// Append status data to the list
-func appendStatus(allStatus []*provider.PreheatingStatus, taskID, status string, err error) {
-	allStatus = append(allStatus, &provider.PreheatingStatus{
+// Create a preheating status
+func preheatingStatus(taskID, status string, err error) *provider.PreheatingStatus {
+	return &provider.PreheatingStatus{
 		TaskID: taskID,
 		Status: status,
-		Error:  err,
-	})
+		Error:  err.Error(),
+	}
 }
 
 // convert the image to preheat image by adding more required data
@@ -375,8 +401,8 @@ func redisAddr() (string, bool) {
 
 	addrParts := []string{}
 	addrParts = append(addrParts, "redis://")
-	if len(segments) >= 3 {
-		addrParts = append(addrParts, fmt.Sprintf("%s:%s@", "arbitrary_username", addrParts[2]))
+	if len(segments) >= 3 && len(segments[2]) > 0 {
+		addrParts = append(addrParts, fmt.Sprintf("%s:%s@", "arbitrary_username", segments[2]))
 	}
 	addrParts = append(addrParts, segments[0], "/0") // use default db index 0
 

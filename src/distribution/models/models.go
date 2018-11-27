@@ -16,13 +16,13 @@ const (
 // Metadata represents the basic info of one working node for the specified provider.
 type Metadata struct {
 	// Unique ID
-	ID string
+	ID string `json:"id"`
 
 	// Based on which driver, identified by ID
-	Provider string
+	Provider string `json:"provider"`
 
 	// The service endpoint of this instance
-	Endpoint string
+	Endpoint string `json:"endpoint"`
 
 	// The authentication way supported
 	AuthMode string `json:"auth_mode,omitempty"`
@@ -34,7 +34,7 @@ type Metadata struct {
 	Status string `json:"status,omitempty"`
 
 	// Whether the instance is activated or not
-	Enabled bool
+	Enabled bool `json:"enabled"`
 
 	// The timestamp of instance setting up
 	SetupTimestamp int64 `json:"setup_timestamp,omitempty"`
@@ -45,12 +45,13 @@ type Metadata struct {
 
 // HistoryRecord represents one record of the image preheating process.
 type HistoryRecord struct {
-	TaskID    string `json:"task_id"` // mapping to the provider task ID
-	Image     string
-	Timestamp int64
-	Status    string
-	Provider  string
-	Instance  string
+	TaskID     string `json:"task_id"` // mapping to the provider task ID
+	Image      string `json:"image"`
+	StartTime  string `json:"start_time"`
+	FinishTime string `json:"finish_time"`
+	Status     string `json:"status"`
+	Provider   string `json:"provider"`
+	Instance   string `json:"instance"`
 }
 
 // QueryParam is a collection of parameters for querying preheating history records.

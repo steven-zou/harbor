@@ -38,7 +38,7 @@ func (rs *RedisStorage) AppendHistory(record *models.HistoryRecord) error {
 }
 
 // UpdateStatus implements @Storage.UpdateStatus
-func (rs *RedisStorage) UpdateStatus(taskID string, status models.TrackStatus) error {
+func (rs *RedisStorage) UpdateStatus(taskID string, status models.TrackStatus, startTime, endTime string) error {
 	if len(taskID) == 0 {
 		return errors.New("empty task ID of history record")
 	}
@@ -58,8 +58,14 @@ func (rs *RedisStorage) UpdateStatus(taskID string, status models.TrackStatus) e
 	}
 
 	hr.Status = status.String()
+	if len(startTime) > 0 {
+		hr.StartTime = startTime
+	}
+	if len(endTime) > 0 {
+		hr.FinishTime = endTime
+	}
 
-	return rs.redisBase.Save(taskID, hr)
+	return rs.redisBase.Update(taskID, hr)
 }
 
 // LoadHistories implements @Storage.LoadHistories

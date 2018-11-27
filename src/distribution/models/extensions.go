@@ -57,14 +57,14 @@ func (ir ImageRepository) Tag() string {
 type changableProperties []string
 
 // Append changable property
-func (cp changableProperties) Append(prop ...string) changableProperties {
-	cp = append(cp, prop...)
+func (cp *changableProperties) Append(prop ...string) *changableProperties {
+	*cp = append(*cp, prop...)
 	return cp
 }
 
 // Match confirms if the provided prop are changable
-func (cp changableProperties) Match(prop string) bool {
-	for _, p := range cp {
+func (cp *changableProperties) Match(prop string) bool {
+	for _, p := range *cp {
 		if p == prop {
 			return true
 		}
@@ -216,12 +216,13 @@ func (pv PropertyValue) StringMap() map[string]string {
 }
 
 // initChangableProperties is used as a initializer of ChangableProperties
-func initChangableProperties() changableProperties {
+func initChangableProperties() *changableProperties {
 	cp := make(changableProperties, 0)
-	cp.Append("auth_mode").
+	cpr := &cp
+	cpr.Append("auth_mode").
 		Append("auth_data").
 		Append("endpoint").
 		Append("enabled")
 
-	return cp
+	return cpr
 }

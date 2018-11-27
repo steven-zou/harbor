@@ -149,6 +149,13 @@ func initRouters() {
 		beego.Router("/chartrepo/:repo/charts/:filename", chartRepositoryAPIType, "get:DownloadChart")
 	}
 
+	// Distribution
+	distributionAPIType := &api.DistributionAPI{}
+	beego.Router("/api/distribution/providers", distributionAPIType, "get:ListProviders")
+	beego.Router("/api/distribution/instances", distributionAPIType, "get:ListAllInstances;post:CreateInstacne")
+	beego.Router("/api/distribution/instances/:id", distributionAPIType, "get:GetInstance;delete:RemoveInstance;put:UpdateInstance")
+	beego.Router("/api/distribution/preheats", distributionAPIType, "get:ListHistories;post:PreheatImage")
+
 	//Error pages
 	beego.ErrorController(&controllers.ErrorController{})
 
