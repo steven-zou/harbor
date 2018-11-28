@@ -18,6 +18,12 @@ type Metadata struct {
 	// Unique ID
 	ID string `json:"id"`
 
+	// Instance name
+	Name string `json:"name"`
+
+	// Description of instance
+	Description string `json:"description"`
+
 	// Based on which driver, identified by ID
 	Provider string `json:"provider"`
 

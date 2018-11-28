@@ -116,6 +116,8 @@ func mockOne(rs *RedisStorage) (string, error) {
 
 func giveMeMetadata() *models.Metadata {
 	return &models.Metadata{
+		Name:           "us-east",
+		Description:    "for UT",
 		Provider:       "Dragonfly",
 		Endpoint:       "http://localhost/endpoint",
 		AuthMode:       "BASIC",

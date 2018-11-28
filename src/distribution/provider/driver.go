@@ -35,30 +35,30 @@ type Driver interface {
 
 // Metadata contains the basic information of the provider.
 type Metadata struct {
-	ID          string
-	Name        string
-	Icon        string `json:"icon,omitempty"`
-	Maintainers []string
-	Version     string
-	Source      string `json:"source,omitempty"`
-	AuthMode    string
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Icon        string   `json:"icon,omitempty"`
+	Maintainers []string `json:"maintainers"`
+	Version     string   `json:"version"`
+	Source      string   `json:"source,omitempty"`
+	AuthMode    string   `json:"auth_mode"`
 }
 
 // DriverStatus keeps the health status of driver.
 type DriverStatus struct {
-	Status string
+	Status string `json:"status"`
 }
 
 // PreheatImage contains related information which can help providers to get/pull the images.
 type PreheatImage struct {
 	// The image content type, only support 'image' now
-	Type string
+	Type string `json:"type"`
 
 	// The access URL of the preheating image
 	URL string `json:"url"`
 
 	// The headers which will be sent to the above URL of preheating image
-	Headers map[string]interface{}
+	Headers map[string]interface{} `json:"headers"`
 }
 
 // PreheatingStatus contains the related results/status of the preheating operation
