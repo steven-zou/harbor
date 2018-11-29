@@ -24,6 +24,7 @@
                     <button *ngIf="withAdmiral" type="button" class="btn btn-sm btn-secondary" (click)="provisionItemEvent($event, selectedRow[0])" [disabled]="!(selectedRow.length===1 && hasProjectAdminRole)"><clr-icon shape="times" size="16"></clr-icon>&nbsp;{{'REPOSITORY.DEPLOY' | translate}}</button>
                     <button *ngIf="withAdmiral" type="button" class="btn btn-sm btn-secondary" (click)="itemAddInfoEvent($event, selectedRow[0])" [disabled]="!(selectedRow.length===1 && hasProjectAdminRole)"><clr-icon shape="times" size="16"></clr-icon>&nbsp;{{'REPOSITORY.ADDITIONAL_INFO' | translate}}</button>
                     <button type="button" class="btn btn-sm btn-secondary" (click)="deleteRepos(selectedRow)" [disabled]="!(selectedRow.length && hasProjectAdminRole)"><clr-icon shape="times" size="16"></clr-icon>&nbsp;{{'REPOSITORY.DELETE' | translate}}</button>
+                    <button type="button" class="btn btn-sm btn-secondary" (click)="preheat(selectedRow)" [disabled]="!(selectedRow.length === 1 && hasProjectAdminRole)"><clr-icon shape="flame" size="16"></clr-icon>&nbsp;Preheat</button>
                 </clr-dg-action-bar>
                 <clr-dg-column [clrDgField]="'name'">{{'REPOSITORY.NAME' | translate}}</clr-dg-column>
                 <clr-dg-column [clrDgSortBy]="tagsCountComparator">{{'REPOSITORY.TAGS_COUNT' | translate}}</clr-dg-column>
