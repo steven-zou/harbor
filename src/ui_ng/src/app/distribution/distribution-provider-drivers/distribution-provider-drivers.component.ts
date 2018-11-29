@@ -19,15 +19,10 @@ export class DistributionProviderDriversComponent implements OnInit {
     this.loadData();
   }
 
-  loadData(){
+  loadData() {
     this.distService.getProviderDrivers()
     .subscribe(
-      providers => {
-        this.providers = providers;
-        for (let i=0;i<6;i++){
-          this.providers.push(this.providers[0]);
-        }
-      },
+      providers => this.providers = providers,
       err => console.error(err)
     );
   }
