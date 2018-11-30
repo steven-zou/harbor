@@ -162,10 +162,15 @@ func (ps PropertySet) assign(prop string, val PropertyValue, metadata *Metadata)
 			metadata.AuthData = v
 			return nil
 		}
+	case "description":
+		if v := val.String(); len(v) > 0 {
+			metadata.Description = v
+			return nil
+		}
 	default:
 	}
 
-	return fmt.Errorf("mismatch %s:%v", prop, val)
+	return fmt.Errorf("assign instance property error %s: %v", prop, val)
 }
 
 // PropertyValue for keeping value of property
@@ -207,9 +212,14 @@ func (pv PropertyValue) StringMap() map[string]string {
 		return nil
 	}
 
-	v, ok := pv.val.(map[string]string)
+	v, ok := pv.val.(map[string]interface{})
 	if ok {
-		return v
+		stringMap := map[string]string{}
+		for k, v := range v {
+			stringMap[k] = fmt.Sprintf("%s", v)
+		}
+
+		return stringMap
 	}
 
 	return nil
@@ -222,7 +232,8 @@ func initChangableProperties() *changableProperties {
 	cpr.Append("auth_mode").
 		Append("auth_data").
 		Append("endpoint").
-		Append("enabled")
+		Append("enabled").
+		Append("description")
 
 	return cpr
 }
