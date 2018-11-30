@@ -176,6 +176,8 @@ func (m *Monitor) checkInstanceHealth(inst *models.Metadata) error {
 		meta.Status = status.Status
 	}
 
+	log.Debugf("Check health of instance %s: %s", inst.ID, meta.Status)
+
 	return m.iStore.Update(meta)
 }
 

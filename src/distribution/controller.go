@@ -175,6 +175,8 @@ func (cc *CoreController) CreateInstance(instance *models.Metadata) (string, err
 		instance.Status = status.Status
 	}
 
+	instance.SetupTimestamp = time.Now().Unix()
+
 	return cc.iStore.Save(instance)
 }
 
