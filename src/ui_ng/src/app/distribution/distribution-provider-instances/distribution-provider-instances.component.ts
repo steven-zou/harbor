@@ -1,28 +1,41 @@
-import { Component, OnInit, Output, EventEmitter } from '@angular/core';
+import { Observable } from 'rxjs';
+import { MessageHandlerService } from './../../shared/message-handler/message-handler.service';
+import { Component, OnInit, Output, EventEmitter, OnDestroy } from '@angular/core';
 import { ProviderInstance } from '../distribution-provider';
 import { DistributionService } from '../distribution.service';
 import { State } from 'clarity-angular';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'dist-instances',
   templateUrl: './distribution-provider-instances.component.html',
   styleUrls: ['./distribution-provider-instances.component.scss']
 })
-export class DistributionProviderInstancesComponent implements OnInit {
+export class DistributionProviderInstancesComponent implements OnInit, OnDestroy {
 
   loading: boolean = false;
   instances: ProviderInstance[] = [];
   pageSize: number = 25;
   totalCount: number = 0;
   lastFilteredKeyword: string = "";
+  periodicalSubscription: Subscription;
   @Output()
   createEvt: EventEmitter<string> = new EventEmitter<string>();
   @Output()
   editEvt: EventEmitter<ProviderInstance> = new EventEmitter<ProviderInstance>();
 
-  constructor(private disService: DistributionService) { }
+  constructor(private disService: DistributionService,
+    private msgHandler: MessageHandlerService) { }
 
   ngOnInit() {
+    this.loadData(null);
+    this.periodicalSubscription = Observable.interval(5000).subscribe(x => {
+      this.loadData(null);
+    });
+  }
+
+  ngOnDestroy() {
+    this.periodicalSubscription.unsubscribe();
   }
 
   loadData(st: State) {
@@ -36,7 +49,7 @@ export class DistributionProviderInstancesComponent implements OnInit {
     );
   }
 
-  refresh(){
+  refresh() {
     this.loadData(null);
   }
 
@@ -44,23 +57,26 @@ export class DistributionProviderInstancesComponent implements OnInit {
     console.log($evt);
   }
 
-  createInstance(){
+  createInstance() {
     this.createEvt.emit("create");
   }
 
-  enableInstance(ID: string){
-    console.log("enable ", ID)
+  enableInstance(ID: string) {
+    console.log("enable ", ID);
   }
 
-  disableInstance(ID: string){
-    console.log("disable ", ID)
+  disableInstance(ID: string) {
+    console.log("disable ", ID);
   }
 
-  deleteInstance(ID: string){
-    console.log("delete ", ID)
+  deleteInstance(ID: string) {
+    this.disService.deleteProviderInstance(ID).subscribe(
+      () => this.msgHandler.info,
+      () => this.msgHandler.handleError
+    )
   }
 
-  editInstance(inst: ProviderInstance){
+  editInstance(inst: ProviderInstance) {
     this.editEvt.emit(inst);
   }
 

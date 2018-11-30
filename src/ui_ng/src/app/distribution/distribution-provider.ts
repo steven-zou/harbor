@@ -4,19 +4,20 @@ export interface DistributionProvider {
     version: string;
     source: string;
     maintainers: string[];
-    authMode: string;
+    auth_mode: string;
 }
 
 export interface ProviderInstance {
-    ID: string;
+    id: string;
     name: string;
     endpoint: string;
     description?: string;
     status: string;
     enabled: boolean;
-    setupTimestamp: Date;
-    provider: DistributionProvider;
-    authorization: AuthorizationData;
+    setupTimestamp?: Date;
+    provider: DistributionProvider | string;
+    auth_mode: string;
+    auth_data: any;
 }
 
 export class AuthMode {

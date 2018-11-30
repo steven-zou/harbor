@@ -48,16 +48,16 @@
                             Edit
                         </button>
                             <div class="dropdown-divider"></div>
-                            <button type="button" [disabled]="instance.enabled" clrDropdownItem (click)="enableInstance(instance.ID)">
+                            <button type="button" [disabled]="instance.enabled" clrDropdownItem (click)="enableInstance(instance.id)">
                             <clr-icon shape="success-standard"></clr-icon>
                             Enable
                         </button>
-                            <button type="button" [disabled]="!instance.enabled" clrDropdownItem (click)="disableInstance(instance.ID)">
+                            <button type="button" [disabled]="!instance.enabled" clrDropdownItem (click)="disableInstance(instance.id)">
                             <clr-icon shape="error-standard"></clr-icon>
                             Disable
                         </button>
                             <div class="dropdown-divider"></div>
-                            <button type="button" class="btn btn-danger" clrDropdownItem (click)="deleteInstance(instance.ID)">
+                            <button type="button" class="btn btn-danger" clrDropdownItem (click)="deleteInstance(instance.id)">
                             <clr-icon shape="trash" class="is-danger"></clr-icon>
                             Delete
                         </button>

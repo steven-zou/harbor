@@ -86,6 +86,7 @@ export class TagComponent implements OnInit, AfterViewInit {
   @Output() refreshRepo = new EventEmitter<boolean>();
   @Output() tagClickEvent = new EventEmitter<TagClickEvent>();
   @Output() signatureOutput = new EventEmitter<any>();
+  @Output() preheatEvt = new EventEmitter<string>();
 
 
   tags: Tag[];
@@ -475,7 +476,6 @@ export class TagComponent implements OnInit, AfterViewInit {
       this.openLabelFilterPanel = false;
       this.openLabelFilterPiece = false;
     }
-
   }
 
   handleInputFilter() {
@@ -492,6 +492,11 @@ export class TagComponent implements OnInit, AfterViewInit {
     }else {
       this.imageStickLabels.every(data => data.show = true);
     }
+  }
+
+  preheat(tags: Tag[]) {
+    console.log(this.repoName, tags);
+    this.preheatEvt.emit(`${this.repoName}:${tags[0].name}`);
   }
 
   // insert the unselected label to groups with the same icons

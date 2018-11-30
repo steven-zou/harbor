@@ -1,3 +1,5 @@
+import { MessageHandlerService } from './../shared/message-handler/message-handler.service';
+import { DistributionService } from './../distribution/distribution.service';
 // Copyright (c) 2017 VMware, Inc. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +34,9 @@ export class RepositoryPageComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private session: SessionService,
-    private router: Router
+    private router: Router,
+    private distributionService: DistributionService,
+    private msgHandler: MessageHandlerService
   ) {
   }
 
@@ -50,5 +54,12 @@ export class RepositoryPageComponent implements OnInit {
   watchRepoClickEvent(repoEvt: RepositoryItem): void {
     let linkUrl = ['harbor', 'projects', repoEvt.project_id, 'repositories', repoEvt.name];
     this.router.navigate(linkUrl);
+  }
+
+  preheat(repo: RepositoryItem): void {
+    this.distributionService.preheatImages([repo.name]).subscribe(
+      res => this.msgHandler.info(res),
+      err => this.msgHandler.handleError(err)
+    );
   }
 }

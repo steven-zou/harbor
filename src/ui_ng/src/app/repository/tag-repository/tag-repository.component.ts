@@ -1,3 +1,5 @@
+import { MessageHandlerService } from './../../shared/message-handler/message-handler.service';
+import { DistributionService } from './../../distribution/distribution.service';
 // Copyright (c) 2017 VMware, Inc. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,7 +42,9 @@ export class TagRepositoryComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private appConfigService: AppConfigService,
-    private session: SessionService) {
+    private session: SessionService,
+    private distributionService: DistributionService,
+    private msgHandler: MessageHandlerService) {
   }
 
   ngOnInit() {
@@ -90,5 +94,13 @@ export class TagRepositoryComponent implements OnInit {
   }
   goProBack(): void {
     this.router.navigate(["harbor", "projects"]);
+  }
+
+  preheat(repo: string): void {
+    console.log(repo);
+    this.distributionService.preheatImages([`${this.appConfigService.getConfig().registry_url}/${repo}`]).subscribe(
+      res => this.msgHandler.info(res),
+      err => this.msgHandler.handleError(err)
+    );
   }
 }

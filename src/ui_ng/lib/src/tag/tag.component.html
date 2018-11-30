@@ -59,6 +59,7 @@
                     </clr-dropdown-menu>
                 </clr-dropdown>
           <button type="button" class="btn btn-sm btn-secondary" *ngIf="hasProjectAdminRole" (click)="deleteTags(selectedRow)" [disabled]="!selectedRow.length"><clr-icon shape="times" size="16"></clr-icon>&nbsp;{{'REPOSITORY.DELETE' | translate}}</button>
+          <button type="button" class="btn btn-sm btn-secondary" (click)="preheat(selectedRow)" [disabled]="!(selectedRow.length === 1 && hasProjectAdminRole)"><clr-icon shape="flame" size="16"></clr-icon>&nbsp;Preheat</button>
         </clr-dg-action-bar>
         <clr-dg-column style="width: 120px;" [clrDgField]="'name'">{{'REPOSITORY.TAG' | translate}}</clr-dg-column>
         <clr-dg-column style="width: 90px;" [clrDgField]="'size'">{{'REPOSITORY.SIZE' | translate}}</clr-dg-column>
