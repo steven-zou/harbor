@@ -9,7 +9,8 @@
                     <label for="instanceName" aria-haspopup="true" role="tooltip" class="tooltip tooltip-validation tooltip-md tooltip-bottom-left"
                         [class.invalid]="instNameInput.invalid && (instNameInput.dirty || instNameInput.touched)">
                         <input type="text" id="instanceName" placeholder="Enter name of the instance" required name="instanceName"
-                            [(ngModel)]="model.name" #instNameInput="ngModel" size="33">
+                            [(ngModel)]="model.name" #instNameInput="ngModel" size="33"
+                            [disabled]="editingMode">
                         <span class="tooltip-content">
                             Name is required.
                         </span>

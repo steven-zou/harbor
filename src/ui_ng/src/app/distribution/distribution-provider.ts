@@ -14,7 +14,7 @@ export interface ProviderInstance {
     description?: string;
     status: string;
     enabled: boolean;
-    setupTimestamp?: Date;
+    setup_timestamp?: Date;
     provider: DistributionProvider | string;
     auth_mode: string;
     auth_data: any;

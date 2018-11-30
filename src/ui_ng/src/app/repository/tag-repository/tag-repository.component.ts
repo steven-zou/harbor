@@ -97,9 +97,8 @@ export class TagRepositoryComponent implements OnInit {
   }
 
   preheat(repo: string): void {
-    console.log(repo);
-    this.distributionService.preheatImages([`${this.appConfigService.getConfig().registry_url}/${repo}`]).subscribe(
-      res => this.msgHandler.info(res),
+    this.distributionService.preheatImages([repo]).subscribe(
+      res => this.msgHandler.info(`Preheat result: ${JSON.stringify(res)}`),
       err => this.msgHandler.handleError(err)
     );
   }
