@@ -53,6 +53,7 @@ export class RepositoryGridviewComponent implements OnChanges, OnInit {
     @Output() repoClickEvent = new EventEmitter<RepositoryItem>();
     @Output() repoProvisionEvent = new EventEmitter<RepositoryItem>();
     @Output() addInfoEvent = new EventEmitter<RepositoryItem>();
+    @Output() preheatEvt = new EventEmitter<RepositoryItem>();
 
     lastFilteredRepoName: string;
     repositories: RepositoryItem[] = [];
@@ -243,6 +244,10 @@ export class RepositoryGridviewComponent implements OnChanges, OnInit {
                     ConfirmationButtons.DELETE_CANCEL);
             });
         }
+    }
+
+    preheat(repoLists: RepositoryItem[]) {
+        this.preheatEvt.emit(repoLists[0]);
     }
 
     getTagInfo(repoName: string): Promise<void> {

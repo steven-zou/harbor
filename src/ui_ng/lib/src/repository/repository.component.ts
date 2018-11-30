@@ -42,6 +42,7 @@ export class RepositoryComponent implements OnInit {
   @Input() isGuest: boolean;
   @Output() tagClickEvent = new EventEmitter<TagClickEvent>();
   @Output() backEvt: EventEmitter<any> = new EventEmitter<any>();
+  @Output() preheatEvt = new EventEmitter<string>();
 
   onGoing = false;
   editing = false;
@@ -201,5 +202,8 @@ export class RepositoryComponent implements OnInit {
         ack.state === ConfirmationState.CONFIRMED) {
         this.reset();
     }
+  }
+  handlePreheatEvent(repoName: string) {
+    this.preheatEvt.emit(repoName);
   }
 }

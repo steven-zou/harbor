@@ -6,17 +6,19 @@
                 <label>Overview</label>
                 <div class="form-group">
                     <label for="instanceName">Name</label>
-                    <label for="instanceName" aria-haspopup="true" role="tooltip" class="tooltip tooltip-validation tooltip-md tooltip-bottom-left" [class.invalid]="instNameInput.invalid && (instNameInput.dirty || instNameInput.touched)">
-            <input type="text" id="instanceName" placeholder="Enter name of the instance" required name="instanceName"
-              [(ngModel)]="model.name" #instNameInput="ngModel" size="33">
-            <span class="tooltip-content">
-              Name is required.
-            </span>
-          </label>
+                    <label for="instanceName" aria-haspopup="true" role="tooltip" class="tooltip tooltip-validation tooltip-md tooltip-bottom-left"
+                        [class.invalid]="instNameInput.invalid && (instNameInput.dirty || instNameInput.touched)">
+                        <input type="text" id="instanceName" placeholder="Enter name of the instance" required name="instanceName"
+                            [(ngModel)]="model.name" #instNameInput="ngModel" size="33">
+                        <span class="tooltip-content">
+                            Name is required.
+                        </span>
+                    </label>
                 </div>
                 <div class="form-group">
                     <label for="instDescription">Description</label>
-                    <textarea rows="3" id="instDescription" placeholder="Describe more about this instance" name="instDescription" [(ngModel)]="model.description" #instDescInput="ngModel"></textarea>
+                    <textarea rows="3" id="instDescription" placeholder="Describe more about this instance" name="instDescription"
+                        [(ngModel)]="model.description" #instDescInput="ngModel"></textarea>
                 </div>
                 <div class="form-group">
                     <label for="instEnabled">Enabled</label>
@@ -30,27 +32,49 @@
                 <label>Service</label>
                 <div class="form-group">
                     <label for="instanceEndpoint">Endpoint</label>
-                    <label for="instanceEndpoint" aria-haspopup="true" role="tooltip" class="tooltip tooltip-validation tooltip-md tooltip-bottom-left" [class.invalid]="instanceEndpointInput.invalid && (instanceEndpointInput.dirty || instanceEndpointInput.touched)">
-            <input type="text" id="instanceEndpointInput" placeholder="Enter endpoint of the instance" required name="instanceEndpoint"
-              [(ngModel)]="model.endpoint" #instanceEndpointInput="ngModel" size="33">
-            <span class="tooltip-content">
-              Endpoint is required.
-            </span>
-          </label>
+                    <label for="instanceEndpoint" aria-haspopup="true" role="tooltip" class="tooltip tooltip-validation tooltip-md tooltip-bottom-left"
+                        [class.invalid]="instanceEndpointInput.invalid && (instanceEndpointInput.dirty || instanceEndpointInput.touched)">
+                        <input type="text" id="instanceEndpointInput" placeholder="Enter endpoint of the instance"
+                            required name="instanceEndpoint" [(ngModel)]="model.endpoint" #instanceEndpointInput="ngModel"
+                            size="33">
+                        <span class="tooltip-content">
+                            Endpoint is required.
+                        </span>
+                    </label>
                 </div>
                 <div class="form-group">
                     <label>Authorization Mode</label>
                     <div class="radio-inline">
-                        <input type="radio" name="auth_mode" id="basic_mode" value="BASIC" disabled [ngModel]="authMode">
+                        <input type="radio" name="auth_mode" id="custom_mode" value="NONE" [(ngModel)]="model.auth_mode">
+                        <label for="custom_mode">NONE</label>
+                    </div>
+                    <div class="radio-inline">
+                        <input type="radio" name="auth_mode" id="basic_mode" value="BASIC" [(ngModel)]="model.auth_mode">
                         <label for="basic_mode">Basic</label>
                     </div>
                     <div class="radio-inline">
-                        <input type="radio" name="auth_mode" id="token_mode" value="OAUTH" disabled [ngModel]="authMode">
-                        <label for="token_mode">OAuth Token</label>
+                        <input type="radio" name="auth_mode" id="token_mode" value="OAUTH" [(ngModel)]="model.auth_mode">
+                        <label for="token_mode">OAuth</label>
                     </div>
-                    <div class="radio-inline">
-                        <input type="radio" name="auth_mode" id="custom_mode" value="CUSTOM" disabled [ngModel]="authMode">
-                        <label for="custom_mode">Customized</label>
+                </div>
+                <div [ngSwitch]="model.auth_mode">
+                    <div class='basic-auth' *ngSwitchCase='"BASIC"'>
+                        <div class="form-group">
+                            <label for="basic-username">Username</label>
+                            <input type="text" id="basic-username" name="username" [(ngModel)]="basicUsername">
+                        </div>
+                        <div class="form-group">
+                            <label for="basic-password">Password</label>
+                            <input type="password" id="basic-password" name="password" [(ngModel)]="basicPassword">
+                        </div>
+                    </div>
+                    <div class='oauth' *ngSwitchCase='"OAUTH"'>
+                        <div class="form-group">
+                            <label for="oauth-token">Token</label>
+                            <input type="text" id="oauth-token" name='token' [(ngModel)]="authToken">
+                        </div>
+                    </div>
+                    <div class='basic-auth' *ngSwitchDefault>
                     </div>
                 </div>
             </section>
