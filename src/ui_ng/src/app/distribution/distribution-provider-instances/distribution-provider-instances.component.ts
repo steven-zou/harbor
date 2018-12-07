@@ -63,10 +63,29 @@ export class DistributionProviderInstancesComponent implements OnInit, OnDestroy
 
   enableInstance(ID: string) {
     console.log("enable ", ID);
+      let instance = {
+        enabled: true
+      };
+      this.disService
+        .updateProviderInstance(ID, instance)
+        .subscribe(res => {
+          this.msgHandler.info('enable success');
+          this.loadData(null);
+        }
+          , () => this.msgHandler.error);
   }
 
   disableInstance(ID: string) {
     console.log("disable ", ID);
+    let instance = {
+      enabled: false
+    };
+    this.disService
+      .updateProviderInstance(ID, instance)
+      .subscribe(res => {
+        this.msgHandler.info('disable success');
+        this.loadData(null);
+      }, () => this.msgHandler.error);
   }
 
   deleteInstance(ID: string) {
@@ -78,6 +97,11 @@ export class DistributionProviderInstancesComponent implements OnInit, OnDestroy
 
   editInstance(inst: ProviderInstance) {
     this.editEvt.emit(inst);
+  }
+
+  fmtTime(time: number) {
+    let date = new Date();
+    return date.setTime(time * 1000);
   }
 
 }

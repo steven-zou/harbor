@@ -34,8 +34,8 @@
                     {{instance.status}}
                 </clr-dg-cell>
                 <clr-dg-cell>{{ instance.enabled }}</clr-dg-cell>
-                <clr-dg-cell>{{ instance.setupTimestamp | date : "yyyy/MM/dd HH:mm:ss" }}</clr-dg-cell>
-                <clr-dg-cell>{{ instance.provider.name }}</clr-dg-cell>
+                <clr-dg-cell>{{ fmtTime(instance.setup_timestamp) | date : "yyyy/MM/dd HH:mm:ss" }}</clr-dg-cell>
+                <clr-dg-cell>{{ instance.provider }}</clr-dg-cell>
                 <clr-dg-cell>
                     <clr-dropdown>
                         <button type="button" clrDropdownTrigger>

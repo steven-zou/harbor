@@ -246,10 +246,6 @@ export class RepositoryGridviewComponent implements OnChanges, OnInit {
         }
     }
 
-    preheat(repoLists: RepositoryItem[]) {
-        this.preheatEvt.emit(repoLists[0]);
-    }
-
     getTagInfo(repoName: string): Promise<void> {
         this.signedCon[repoName] = [];
         return toPromise<Tag[]>(this.tagService.getTags(repoName))

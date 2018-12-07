@@ -55,11 +55,4 @@ export class RepositoryPageComponent implements OnInit {
     let linkUrl = ['harbor', 'projects', repoEvt.project_id, 'repositories', repoEvt.name];
     this.router.navigate(linkUrl);
   }
-
-  preheat(repo: RepositoryItem): void {
-    this.distributionService.preheatImages([repo.name]).subscribe(
-      res => this.msgHandler.info(res),
-      err => this.msgHandler.handleError(err)
-    );
-  }
 }

@@ -47,7 +47,7 @@ export class DistributionSetupModalComponent implements OnInit {
       endpoint: "",
       status: "",
       enabled: true,
-      setupTimestamp: new Date(),
+      setup_timestamp: new Date(),
       provider: "",
       auth_mode: AuthMode.BASIC,
       auth_data: authData
@@ -88,9 +88,7 @@ export class DistributionSetupModalComponent implements OnInit {
     let instance = {};
     if (this.editingMode) {
       instance = {
-        name: this.model.name,
         description: this.model.description,
-        provider: "dragonfly",
         endpoint: this.model.endpoint,
         auth_mode: this.model.auth_mode,
         auth_data: authData,
