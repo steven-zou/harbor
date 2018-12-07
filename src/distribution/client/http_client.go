@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/goharbor/harbor/src/common/utils/log"
+
 	"github.com/goharbor/harbor/src/distribution/auth"
 )
 
@@ -50,6 +52,18 @@ func NewHTTPClient() *HTTPClient {
 
 // Get content from the url
 func (hc *HTTPClient) Get(url string, cred *auth.Credential, parmas map[string]string, options map[string]string) ([]byte, error) {
+	bytes, err := hc.get(url, cred, parmas, options)
+	logMsg := fmt.Sprintf("Get %s with cred=%v, params=%v, options=%v", url, cred, parmas, options)
+	if err != nil {
+		log.Errorf("%s: %s", logMsg, err)
+	} else {
+		log.Debug("%s: succeed", logMsg)
+	}
+
+	return bytes, err
+}
+
+func (hc *HTTPClient) get(url string, cred *auth.Credential, parmas map[string]string, options map[string]string) ([]byte, error) {
 	if len(url) == 0 {
 		return nil, errors.New("empty url")
 	}
@@ -103,6 +117,18 @@ func (hc *HTTPClient) Get(url string, cred *auth.Credential, parmas map[string]s
 
 // Post content to the service specified by the url
 func (hc *HTTPClient) Post(url string, cred *auth.Credential, body interface{}, options map[string]string) ([]byte, error) {
+	bytes, err := hc.post(url, cred, body, options)
+	logMsg := fmt.Sprintf("Post %s with cred=%v, body=%v, options=%v", url, cred, body, options)
+	if err != nil {
+		log.Errorf("%s: %s", logMsg, err)
+	} else {
+		log.Debug("%s: succeed", logMsg)
+	}
+
+	return bytes, err
+}
+
+func (hc *HTTPClient) post(url string, cred *auth.Credential, body interface{}, options map[string]string) ([]byte, error) {
 	if len(url) == 0 {
 		return nil, errors.New("empty url")
 	}

@@ -7,6 +7,7 @@ import {
   AuthMode
 } from "../distribution-provider";
 import { NgForm } from "@angular/forms";
+import { MsgChannelService } from '../msg-channel.service';
 
 @Component({
   selector: "dist-setup-modal",
@@ -24,7 +25,8 @@ export class DistributionSetupModalComponent implements OnInit {
 
   constructor(
     private distributionService: DistributionService,
-    private msgHandler: MessageHandlerService
+    private msgHandler: MessageHandlerService,
+    private chanService: MsgChannelService
   ) {}
 
   ngOnInit() {
@@ -96,7 +98,12 @@ export class DistributionSetupModalComponent implements OnInit {
       };
       this.distributionService
         .updateProviderInstance(this.model.id, instance)
-        .subscribe(() => this.msgHandler.info, () => this.msgHandler.error);
+        .subscribe(
+          res => {
+            this.msgHandler.info(`Instance ${this.model.id} updated: $res`);
+            this.chanService.publish("updated");
+          }, 
+          err => this.msgHandler.error(err));
     } else {
       instance = {
         name: this.model.name,
@@ -109,7 +116,12 @@ export class DistributionSetupModalComponent implements OnInit {
       };
       this.distributionService
         .createProviderInstance(instance)
-        .subscribe(() => this.msgHandler.info, () => this.msgHandler.error);
+        .subscribe(
+          res => {
+            this.msgHandler.info(`Instance created: $res`);
+            this.chanService.publish("created");
+          }, 
+          err => this.msgHandler.error(err));
     }
 
     this._close();

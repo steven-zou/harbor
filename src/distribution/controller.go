@@ -171,6 +171,7 @@ func (cc *CoreController) CreateInstance(instance *models.Metadata) (string, err
 	status, err := p.GetHealth()
 	if err != nil {
 		instance.Status = provider.DriverStatusUnHealthy
+		log.Errorf("Check health of new instance error: %s; set healthy status to unhealthy", err)
 	} else {
 		instance.Status = status.Status
 	}

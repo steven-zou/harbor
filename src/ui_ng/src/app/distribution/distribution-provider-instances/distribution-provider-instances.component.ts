@@ -5,6 +5,7 @@ import { ProviderInstance } from '../distribution-provider';
 import { DistributionService } from '../distribution.service';
 import { State } from 'clarity-angular';
 import { Subscription } from 'rxjs';
+import { MsgChannelService } from '../msg-channel.service';
 
 @Component({
   selector: 'dist-instances',
@@ -19,23 +20,38 @@ export class DistributionProviderInstancesComponent implements OnInit, OnDestroy
   totalCount: number = 0;
   lastFilteredKeyword: string = "";
   periodicalSubscription: Subscription;
+  chanSub: Subscription;
+
   @Output()
   createEvt: EventEmitter<string> = new EventEmitter<string>();
   @Output()
   editEvt: EventEmitter<ProviderInstance> = new EventEmitter<ProviderInstance>();
 
-  constructor(private disService: DistributionService,
-    private msgHandler: MessageHandlerService) { }
+  constructor(
+    private disService: DistributionService,
+    private msgHandler: MessageHandlerService,
+    private chanService: MsgChannelService,
+    ) { }
 
   ngOnInit() {
     this.loadData(null);
-    this.periodicalSubscription = Observable.interval(5000).subscribe(x => {
-      this.loadData(null);
+    this.chanSub = this.chanService.subscribe(function(msg:string){
+      if (msg=="created" || msg == "updated"){
+        this.loadData(null);
+      }
+
+      console.error("unknown msg")
     });
+    /*this.periodicalSubscription = Observable.interval(5000).subscribe(x => {
+      this.loadData(null);
+    });*/
   }
 
   ngOnDestroy() {
     this.periodicalSubscription.unsubscribe();
+    if (this.chanSub){
+      this.chanSub.unsubscribe();
+    }
   }
 
   loadData(st: State) {
@@ -45,7 +61,7 @@ export class DistributionProviderInstancesComponent implements OnInit, OnDestroy
         this.instances = instances;
         this.totalCount = this.instances.length;
       },
-      err => console.error(err)
+      err => this.msgHandler.error(err)
     );
   }
 
@@ -62,36 +78,37 @@ export class DistributionProviderInstancesComponent implements OnInit, OnDestroy
   }
 
   enableInstance(ID: string) {
-    console.log("enable ", ID);
       let instance = {
         enabled: true
       };
       this.disService
         .updateProviderInstance(ID, instance)
-        .subscribe(res => {
-          this.msgHandler.info('enable success');
+        .subscribe(
+          res => {
+          this.msgHandler.info(`Instance $ID enabled`);
           this.loadData(null);
-        }
-          , () => this.msgHandler.error);
+        },
+        err => this.msgHandler.error(err));
   }
 
   disableInstance(ID: string) {
-    console.log("disable ", ID);
     let instance = {
       enabled: false
     };
     this.disService
       .updateProviderInstance(ID, instance)
-      .subscribe(res => {
-        this.msgHandler.info('disable success');
+      .subscribe(
+        res => {
+        this.msgHandler.info(`Instance ${ID} disabled`);
         this.loadData(null);
-      }, () => this.msgHandler.error);
+      }, 
+      err => this.msgHandler.error(err));
   }
 
   deleteInstance(ID: string) {
     this.disService.deleteProviderInstance(ID).subscribe(
-      () => this.msgHandler.info,
-      () => this.msgHandler.handleError
+      () => this.msgHandler.info(`Instance $ID deleted`),
+      err => this.msgHandler.error(err)
     )
   }
 
@@ -103,5 +120,4 @@ export class DistributionProviderInstancesComponent implements OnInit, OnDestroy
     let date = new Date();
     return date.setTime(time * 1000);
   }
-
 }
