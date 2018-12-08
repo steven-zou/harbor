@@ -142,7 +142,7 @@ func (hc *HTTPClient) post(url string, cred *auth.Credential, body interface{}, 
 		}
 
 		bodyContent = strings.NewReader(string(content))
-		log.Debugf("POST body: %s", bodyContent)
+		log.Debugf("POST body: %s", string(content))
 	}
 	req, err := http.NewRequest(http.MethodPost, url, bodyContent)
 	if err != nil {

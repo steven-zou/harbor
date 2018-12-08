@@ -120,7 +120,8 @@ export class DistributionSetupModalComponent implements OnInit {
         .createProviderInstance(instance)
         .subscribe(
           res => {
-            this.msgHandler.info(`Instance created: ${res}`);
+            let reply:string = JSON.stringify(res);
+            this.msgHandler.info(`Instance created: ${reply}`);
             this.chanService.publish("created");
           }, 
           err => this.msgHandler.error(err));

@@ -77,13 +77,8 @@ func (dd *DragonflyDriver) Preheat(preheatingImage *PreheatImage) (*PreheatingSt
 		return nil, errors.New("no image specified")
 	}
 
-	body, err := json.Marshal(preheatingImage)
-	if err != nil {
-		return nil, err
-	}
-
 	url := fmt.Sprintf("%s%s", strings.TrimSuffix(dd.instance.Endpoint, "/"), preheatEndpoint)
-	bytes, err := client.DefaultHTTPClient.Post(url, dd.getCred(), body, nil)
+	bytes, err := client.DefaultHTTPClient.Post(url, dd.getCred(), preheatingImage, nil)
 	if err != nil {
 		return nil, err
 	}
