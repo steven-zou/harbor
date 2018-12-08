@@ -82,8 +82,9 @@ func (m *Monitor) Start() {
 			case item := <-m.q:
 				go func() {
 					if done, err := m.checkTaskProgress(item.instanceID, item.taskID); err != nil {
-						log.Errorf("update progress error: %s", err)
+						log.Errorf("Update progress error: %s", err)
 					} else {
+						log.Debugf("Check preheating progress of task %s to instance %s: done=%v", item.instanceID, item.taskID, done)
 						if !done {
 							// Keep on checking
 							// put back
@@ -124,6 +125,8 @@ func (m *Monitor) healthLoop() {
 		go func(inst *models.Metadata) {
 			if err := m.checkInstanceHealth(inst); err != nil {
 				log.Errorf("check instance health error: %s", err)
+			} else {
+				log.Debugf("check health of instance %s succeed", inst.Name)
 			}
 		}(inst)
 	}

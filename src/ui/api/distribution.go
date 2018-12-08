@@ -178,6 +178,8 @@ func (da *DistributionAPI) PreheatImage() {
 func (da *DistributionAPI) handleError(err error) {
 	if err == storage.ErrObjectNotFound {
 		da.HandleNotFound(err.Error())
+	} else if err == distribution.ErrorConflict {
+		da.HandleConflict(err.Error())
 	} else {
 		da.HandleInternalServerError(err.Error())
 	}

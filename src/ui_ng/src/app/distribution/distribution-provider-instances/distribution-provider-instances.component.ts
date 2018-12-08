@@ -48,7 +48,10 @@ export class DistributionProviderInstancesComponent implements OnInit, OnDestroy
   }
 
   ngOnDestroy() {
-    this.periodicalSubscription.unsubscribe();
+    if (this.periodicalSubscription){
+      this.periodicalSubscription.unsubscribe();
+    }
+
     if (this.chanSub){
       this.chanSub.unsubscribe();
     }
@@ -84,8 +87,8 @@ export class DistributionProviderInstancesComponent implements OnInit, OnDestroy
       this.disService
         .updateProviderInstance(ID, instance)
         .subscribe(
-          res => {
-          this.msgHandler.info(`Instance $ID enabled`);
+          () => {
+          this.msgHandler.info(`Instance ${ID} enabled`);
           this.loadData(null);
         },
         err => this.msgHandler.error(err));
@@ -98,7 +101,7 @@ export class DistributionProviderInstancesComponent implements OnInit, OnDestroy
     this.disService
       .updateProviderInstance(ID, instance)
       .subscribe(
-        res => {
+        () => {
         this.msgHandler.info(`Instance ${ID} disabled`);
         this.loadData(null);
       }, 
@@ -107,7 +110,11 @@ export class DistributionProviderInstancesComponent implements OnInit, OnDestroy
 
   deleteInstance(ID: string) {
     this.disService.deleteProviderInstance(ID).subscribe(
-      () => this.msgHandler.info(`Instance $ID deleted`),
+      res => {
+        let reply: string = JSON.stringify(res);
+        this.msgHandler.info(`Instance ${ID} deleted: ${reply}`);
+        this.loadData(null);
+      },
       err => this.msgHandler.error(err)
     )
   }

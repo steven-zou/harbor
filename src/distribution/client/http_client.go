@@ -109,7 +109,7 @@ func (hc *HTTPClient) get(url string, cred *auth.Credential, parmas map[string]s
 
 	if (res.StatusCode / 100) != 2 {
 		// Return the server error content in the error.
-		return nil, fmt.Errorf("%s '%s' error: %d %s", http.MethodGet, res.Request.URL.String(), res.StatusCode, bytes)
+		return nil, fmt.Errorf("%s '%s' error: %s %s", http.MethodGet, res.Request.URL.String(), res.Status, bytes)
 	}
 
 	return bytes, nil
@@ -118,7 +118,7 @@ func (hc *HTTPClient) get(url string, cred *auth.Credential, parmas map[string]s
 // Post content to the service specified by the url
 func (hc *HTTPClient) Post(url string, cred *auth.Credential, body interface{}, options map[string]string) ([]byte, error) {
 	bytes, err := hc.post(url, cred, body, options)
-	logMsg := fmt.Sprintf("Post %s with cred=%v, body=%v, options=%v", url, cred, body, options)
+	logMsg := fmt.Sprintf("Post %s with cred=%v, options=%v", url, cred, options)
 	if err != nil {
 		log.Errorf("%s: %s", logMsg, err)
 	} else {
@@ -142,6 +142,7 @@ func (hc *HTTPClient) post(url string, cred *auth.Credential, body interface{}, 
 		}
 
 		bodyContent = strings.NewReader(string(content))
+		log.Debugf("POST body: %s", bodyContent)
 	}
 	req, err := http.NewRequest(http.MethodPost, url, bodyContent)
 	if err != nil {
@@ -177,7 +178,7 @@ func (hc *HTTPClient) post(url string, cred *auth.Credential, body interface{}, 
 
 	if (res.StatusCode / 100) != 2 {
 		// Return the server error content in the error.
-		return nil, fmt.Errorf("%s '%s' error: %d %s", http.MethodGet, res.Request.URL.String(), res.StatusCode, bytes)
+		return nil, fmt.Errorf("%s '%s' error: %s %s", http.MethodPost, res.Request.URL.String(), res.Status, bytes)
 	}
 
 	return bytes, nil

@@ -32,6 +32,9 @@ const (
 // DefaultController is default controller
 var DefaultController Controller
 
+// ErrorConflict for handling conflicts
+var ErrorConflict = errors.New("resource conflict")
+
 // CompositePreheatingResults handle preheating results among multiple providers
 // Key is the ID of the provider instance.
 type CompositePreheatingResults map[string]*[]*provider.PreheatingStatus
@@ -158,6 +161,16 @@ func (cc *CoreController) CreateInstance(instance *models.Metadata) (string, err
 		return "", errors.New("nil instance object provided")
 	}
 
+	// Avoid duplicated endpoint
+	allOnes, err := cc.iStore.List(nil)
+	if err != nil {
+		return "", err
+	}
+	for _, theOne := range allOnes {
+		if theOne.Endpoint == instance.Endpoint {
+			return "", ErrorConflict
+		}
+	}
 	// Check health before saving
 	f, ok := provider.GetProvider(instance.Provider)
 	if !ok {
@@ -272,6 +285,7 @@ func (cc *CoreController) PreheatImages(images ...models.ImageRepository) (Compo
 					allStatus = append(allStatus, preheatingStatus(string(img), models.PreheatingStatusFail, err))
 					continue
 				}
+				log.Debugf("Preheating image %v to instance %s", preheatImg, inst.Name)
 
 				pStatus, err := p.Preheat(preheatImg)
 				if err != nil {
