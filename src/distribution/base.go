@@ -71,6 +71,8 @@ func (m *Monitor) Start() {
 		}
 	}()
 
+	log.Info("Health check loop for instances start")
+
 	// Start progress update loop
 	go func() {
 		defer func() {
@@ -101,6 +103,8 @@ func (m *Monitor) Start() {
 			}
 		}
 	}()
+
+	log.Info("Task progress auto updater start")
 }
 
 // WatchProgress watches the preheating task progress

@@ -122,7 +122,7 @@ func (hc *HTTPClient) Post(url string, cred *auth.Credential, body interface{}, 
 	if err != nil {
 		log.Errorf("%s: %s", logMsg, err)
 	} else {
-		log.Debug("%s: succeed", logMsg)
+		log.Debugf("%s succeed: %s", logMsg, string(bytes))
 	}
 
 	return bytes, err

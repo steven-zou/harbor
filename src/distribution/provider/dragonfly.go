@@ -19,11 +19,11 @@ const (
 )
 
 type dragonflyPreheatCreateResp struct {
-	ID string `json:"id"`
+	ID string `json:"ID"`
 }
 
 type dragonflyPreheatInfo struct {
-	ID         string `json:"id"`
+	ID         string `json:"ID"`
 	StartTime  string `json:"startTime,omitempty"`
 	FinishTime string `json:"finishTime,omitempty"`
 	Status     string
