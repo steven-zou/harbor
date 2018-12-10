@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	healthCheckLoopInterval = 1 * time.Minute
+	healthCheckLoopInterval = 30 * time.Second
 	progressUpdateInterval  = 5 * time.Second
 	qSize                   = 1024
 )
@@ -54,13 +54,14 @@ func NewMonitor(ctx context.Context, iStorage instance.Storage, hStorage history
 // Start the loops
 func (m *Monitor) Start() {
 	// Start instance health check loop
-	tk := time.NewTicker(healthCheckLoopInterval)
-	defer tk.Stop()
-
 	go func() {
 		defer func() {
 			log.Info("Monitor health check loop exit")
 		}()
+
+		tk := time.NewTicker(healthCheckLoopInterval)
+		defer tk.Stop()
+
 		for {
 			select {
 			case <-tk.C:
