@@ -101,11 +101,11 @@ func (hc *HTTPClient) get(url string, cred *auth.Credential, parmas map[string]s
 	}
 
 	// If failed, read error message; if succeeded, read content.
+	defer res.Body.Close()
 	bytes, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
 
 	if (res.StatusCode / 100) != 2 {
 		// Return the server error content in the error.
@@ -167,13 +167,10 @@ func (hc *HTTPClient) post(url string, cred *auth.Credential, body interface{}, 
 		return nil, err
 	}
 
-	var bytes []byte
-	if res.Body != nil && res.ContentLength > 0 {
-		bytes, err = ioutil.ReadAll(res.Body)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
+	defer res.Body.Close()
+	bytes, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
 	}
 
 	if (res.StatusCode / 100) != 2 {
