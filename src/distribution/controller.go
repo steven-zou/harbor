@@ -2,6 +2,7 @@ package distribution
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -250,10 +251,14 @@ func (cc *CoreController) PreheatImages(images ...models.ImageRepository) (Compo
 		return nil, errors.New("no distribution provider instances")
 	}
 
+	// TODO: refine the logic to remove those vars
+	validCount := 0
+	hasError := false
 	results := make(CompositePreheatingResults)
 	for _, inst := range instances {
 		// Instance must be enabled and healthy
 		if inst.Enabled && inst.Status != provider.DriverStatusUnHealthy {
+			validCount++
 			allStatus := []*provider.PreheatingStatus{}
 			results[inst.ID] = &allStatus
 
@@ -262,7 +267,7 @@ func (cc *CoreController) PreheatImages(images ...models.ImageRepository) (Compo
 				// Append error
 				err := fmt.Errorf("the specified provider %s for instance %s is not registered", inst.Provider, inst.ID)
 				log.Errorf("get provider factory error: %s", err)
-
+				hasError = true
 				allStatus = append(allStatus, preheatingStatus("-", models.PreheatingStatusFail, err))
 				continue
 			}
@@ -271,7 +276,7 @@ func (cc *CoreController) PreheatImages(images ...models.ImageRepository) (Compo
 			if err != nil {
 				// Append error
 				log.Errorf("initialize provider error: %s", err)
-
+				hasError = true
 				allStatus = append(allStatus, preheatingStatus("-", models.PreheatingStatusFail, fmt.Errorf("initialize provider error: %s", err)))
 				continue
 			}
@@ -281,7 +286,7 @@ func (cc *CoreController) PreheatImages(images ...models.ImageRepository) (Compo
 				preheatImg, err := buildImageData(img)
 				if err != nil {
 					log.Errorf("build image data error: %s", err)
-
+					hasError = true
 					allStatus = append(allStatus, preheatingStatus(string(img), models.PreheatingStatusFail, err))
 					continue
 				}
@@ -290,7 +295,7 @@ func (cc *CoreController) PreheatImages(images ...models.ImageRepository) (Compo
 				pStatus, err := p.Preheat(preheatImg)
 				if err != nil {
 					log.Errorf("preheat image error: %s", err)
-
+					hasError = true
 					allStatus = append(allStatus, preheatingStatus(string(img), models.PreheatingStatusFail, err))
 					continue
 				}
@@ -315,6 +320,15 @@ func (cc *CoreController) PreheatImages(images ...models.ImageRepository) (Compo
 				allStatus = append(allStatus, pStatus)
 			}
 		}
+	}
+
+	if validCount == 0 {
+		return nil, errors.New("No enabled healthy instances existing")
+	}
+
+	if hasError {
+		bytes, _ := json.Marshal(results)
+		return nil, fmt.Errorf("%s", string(bytes))
 	}
 
 	return results, nil
