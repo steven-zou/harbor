@@ -338,8 +338,40 @@ func Init(ctx context.Context) {
 		} else {
 			c.monitor.Start()
 			DefaultController = c
+
+			// Sync task status
+			allItemNotDone, err := syncTaskStatus()
+			if err != nil {
+				log.Error(err)
+			}
+
+			for _, item := range allItemNotDone {
+				c.monitor.WatchProgress(item.Instance, item.TaskID)
+				log.Debugf("Sync status for task %s against %s", item.TaskID, item.Instance)
+			}
 		}
 	}
+}
+
+// Sync the task status when starting
+func syncTaskStatus() ([]*models.HistoryRecord, error) {
+	// Load all the tasks from storage
+	// TODO: there should be a better sync way
+	all, err := DefaultController.LoadHistoryRecords(nil)
+	if err != nil {
+		return nil, fmt.Errorf("sync status of preheating tasks error: %s", err)
+	}
+
+	allItemsNotDone := make([]*models.HistoryRecord, 0)
+	for _, taskRecord := range all {
+		status := models.TrackStatus(taskRecord.Status)
+		done := status.Success() || status.Fail()
+		if !done {
+			allItemsNotDone = append(allItemsNotDone, taskRecord)
+		}
+	}
+
+	return allItemsNotDone, nil
 }
 
 // Create a preheating status
