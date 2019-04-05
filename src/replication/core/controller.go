@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,9 +16,12 @@ package core
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
 
 	common_models "github.com/goharbor/harbor/src/common/models"
 	"github.com/goharbor/harbor/src/common/utils/log"
+	"github.com/goharbor/harbor/src/core/utils"
 	"github.com/goharbor/harbor/src/replication"
 	"github.com/goharbor/harbor/src/replication/models"
 	"github.com/goharbor/harbor/src/replication/policy"
@@ -26,7 +29,8 @@ import (
 	"github.com/goharbor/harbor/src/replication/source"
 	"github.com/goharbor/harbor/src/replication/target"
 	"github.com/goharbor/harbor/src/replication/trigger"
-	"github.com/goharbor/harbor/src/ui/utils"
+
+	"github.com/docker/distribution/uuid"
 )
 
 // Controller defines the methods that a replicatoin controllter should implement
@@ -36,42 +40,42 @@ type Controller interface {
 	Replicate(policyID int64, metadata ...map[string]interface{}) error
 }
 
-//DefaultController is core module to cordinate and control the overall workflow of the
-//replication modules.
+// DefaultController is core module to cordinate and control the overall workflow of the
+// replication modules.
 type DefaultController struct {
-	//Indicate whether the controller has been initialized or not
+	// Indicate whether the controller has been initialized or not
 	initialized bool
 
-	//Manage the policies
+	// Manage the policies
 	policyManager policy.Manager
 
-	//Manage the targets
+	// Manage the targets
 	targetManager target.Manager
 
-	//Handle the things related with source
+	// Handle the things related with source
 	sourcer *source.Sourcer
 
-	//Manage the triggers of policies
+	// Manage the triggers of policies
 	triggerManager *trigger.Manager
 
-	//Handle the replication work
+	// Handle the replication work
 	replicator replicator.Replicator
 }
 
-//Keep controller as singleton instance
+// Keep controller as singleton instance
 var (
 	GlobalController Controller
 )
 
-//ControllerConfig includes related configurations required by the controller
+// ControllerConfig includes related configurations required by the controller
 type ControllerConfig struct {
-	//The capacity of the cache storing enabled triggers
+	// The capacity of the cache storing enabled triggers
 	CacheCapacity int
 }
 
-//NewDefaultController is the constructor of DefaultController.
+// NewDefaultController is the constructor of DefaultController.
 func NewDefaultController(cfg ControllerConfig) *DefaultController {
-	//Controller refer the default instances
+	// Controller refer the default instances
 	ctl := &DefaultController{
 		policyManager:  policy.NewDefaultManager(),
 		targetManager:  target.NewDefaultManager(),
@@ -86,17 +90,17 @@ func NewDefaultController(cfg ControllerConfig) *DefaultController {
 
 // Init creates the GlobalController and inits it
 func Init() error {
-	GlobalController = NewDefaultController(ControllerConfig{}) //Use default data
+	GlobalController = NewDefaultController(ControllerConfig{}) // Use default data
 	return GlobalController.Init()
 }
 
-//Init will initialize the controller and the sub components
+// Init will initialize the controller and the sub components
 func (ctl *DefaultController) Init() error {
 	if ctl.initialized {
 		return nil
 	}
 
-	//Initialize sourcer
+	// Initialize sourcer
 	ctl.sourcer.Init()
 
 	ctl.initialized = true
@@ -104,7 +108,7 @@ func (ctl *DefaultController) Init() error {
 	return nil
 }
 
-//CreatePolicy is used to create a new policy and enable it if necessary
+// CreatePolicy is used to create a new policy and enable it if necessary
 func (ctl *DefaultController) CreatePolicy(newPolicy models.ReplicationPolicy) (int64, error) {
 	id, err := ctl.policyManager.CreatePolicy(newPolicy)
 	if err != nil {
@@ -119,8 +123,8 @@ func (ctl *DefaultController) CreatePolicy(newPolicy models.ReplicationPolicy) (
 	return id, nil
 }
 
-//UpdatePolicy will update the policy with new content.
-//Parameter updatedPolicy must have the ID of the updated policy.
+// UpdatePolicy will update the policy with new content.
+// Parameter updatedPolicy must have the ID of the updated policy.
 func (ctl *DefaultController) UpdatePolicy(updatedPolicy models.ReplicationPolicy) error {
 	id := updatedPolicy.ID
 	originPolicy, err := ctl.policyManager.GetPolicy(id)
@@ -142,7 +146,7 @@ func (ctl *DefaultController) UpdatePolicy(updatedPolicy models.ReplicationPolic
 				reset = true
 			}
 		case replication.TriggerKindImmediate:
-			// Always reset immediate trigger as it is relevent with namespaces
+			// Always reset immediate trigger as it is relevant with namespaces
 			reset = true
 		default:
 			// manual trigger, no need to reset
@@ -164,7 +168,7 @@ func (ctl *DefaultController) UpdatePolicy(updatedPolicy models.ReplicationPolic
 	return nil
 }
 
-//RemovePolicy will remove the specified policy and clean the related settings
+// RemovePolicy will remove the specified policy and clean the related settings
 func (ctl *DefaultController) RemovePolicy(policyID int64) error {
 	// TODO check pre-conditions
 
@@ -184,18 +188,18 @@ func (ctl *DefaultController) RemovePolicy(policyID int64) error {
 	return ctl.policyManager.RemovePolicy(policyID)
 }
 
-//GetPolicy is delegation of GetPolicy of Policy.Manager
+// GetPolicy is delegation of GetPolicy of Policy.Manager
 func (ctl *DefaultController) GetPolicy(policyID int64) (models.ReplicationPolicy, error) {
 	return ctl.policyManager.GetPolicy(policyID)
 }
 
-//GetPolicies is delegation of GetPoliciemodels.ReplicationPolicy{}s of Policy.Manager
+// GetPolicies is delegation of GetPoliciemodels.ReplicationPolicy{}s of Policy.Manager
 func (ctl *DefaultController) GetPolicies(query models.QueryParameter) (*models.ReplicationPolicyQueryResult, error) {
 	return ctl.policyManager.GetPolicies(query)
 }
 
-//Replicate starts one replication defined in the specified policy;
-//Can be launched by the API layer and related triggers.
+// Replicate starts one replication defined in the specified policy;
+// Can be launched by the API layer and related triggers.
 func (ctl *DefaultController) Replicate(policyID int64, metadata ...map[string]interface{}) error {
 	policy, err := ctl.GetPolicy(policyID)
 	if err != nil {
@@ -220,9 +224,16 @@ func (ctl *DefaultController) Replicate(policyID int64, metadata ...map[string]i
 		targets = append(targets, target)
 	}
 
+	// Get operation uuid from metadata, if none provided, generate one.
+	opUUID, err := getOpUUID(metadata...)
+	if err != nil {
+		return err
+	}
+
 	// submit the replication
 	return ctl.replicator.Replicate(&replicator.Replication{
 		PolicyID:   policyID,
+		OpUUID:     opUUID,
 		Candidates: candidates,
 		Targets:    targets,
 	})
@@ -289,4 +300,27 @@ func buildFilterChain(policy *models.ReplicationPolicy, sourcer *source.Sourcer)
 	}
 
 	return source.NewDefaultFilterChain(filters)
+}
+
+// getOpUUID get operation uuid from metadata or generate one if none found.
+func getOpUUID(metadata ...map[string]interface{}) (string, error) {
+	if len(metadata) <= 0 {
+		return strings.Replace(uuid.Generate().String(), "-", "", -1), nil
+	}
+
+	opUUID, ok := metadata[0]["op_uuid"]
+	if !ok {
+		return strings.Replace(uuid.Generate().String(), "-", "", -1), nil
+	}
+
+	id, ok := opUUID.(string)
+	if !ok {
+		return "", fmt.Errorf("operation uuid should have type 'string', but got '%s'", reflect.TypeOf(opUUID).Name())
+	}
+
+	if id == "" {
+		return "", fmt.Errorf("provided operation uuid is empty")
+	}
+
+	return id, nil
 }

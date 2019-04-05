@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,14 +26,14 @@ import (
 // TagFilter implements Filter interface to filter tag
 type TagFilter struct {
 	pattern   string
-	convertor Convertor
+	converter Converter
 }
 
 // NewTagFilter returns an instance of TagFilter
 func NewTagFilter(pattern string, registry registry.Adaptor) *TagFilter {
 	return &TagFilter{
 		pattern:   pattern,
-		convertor: NewTagConvertor(registry),
+		converter: NewTagConverter(registry),
 	}
 }
 
@@ -42,9 +42,9 @@ func (t *TagFilter) Init() error {
 	return nil
 }
 
-// GetConvertor ...
-func (t *TagFilter) GetConvertor() Convertor {
-	return t.convertor
+// GetConverter ...
+func (t *TagFilter) GetConverter() Converter {
+	return t.converter
 }
 
 // DoFilter filters tag of the image

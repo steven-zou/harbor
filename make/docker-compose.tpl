@@ -4,6 +4,14 @@ services:
     image: goharbor/harbor-log:__version__
     container_name: harbor-log 
     restart: always
+    dns_search: .
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
     volumes:
       - /var/log/harbor/:/var/log/docker/:z
       - ./common/config/log/:/etc/logrotate.d/:z
@@ -15,13 +23,19 @@ services:
     image: goharbor/registry-photon:__reg_version__
     container_name: registry
     restart: always
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
     volumes:
       - /data/registry:/storage:z
       - ./common/config/registry/:/etc/registry/:z
+      - ./common/config/custom-ca-bundle.crt:/harbor_cust_cert/custom-ca-bundle.crt:z
     networks:
       - harbor
-    environment:
-      - GODEBUG=netdns=cgo
+    dns_search: .
     depends_on:
       - log
     logging:
@@ -35,14 +49,19 @@ services:
     env_file:
       - ./common/config/registryctl/env
     restart: always
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
     volumes:
       - /data/registry:/storage:z
       - ./common/config/registry/:/etc/registry/:z
       - ./common/config/registryctl/config.yml:/etc/registryctl/config.yml:z
     networks:
       - harbor
-    environment:
-      - GODEBUG=netdns=cgo
+    dns_search: .
     depends_on:
       - log
     logging:
@@ -54,10 +73,18 @@ services:
     image: goharbor/harbor-db:__version__
     container_name: harbor-db
     restart: always
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
     volumes:
       - /data/database:/var/lib/postgresql/data:z
     networks:
       - harbor
+    dns_search: .
     env_file:
       - ./common/config/db/env
     depends_on:
@@ -67,92 +94,124 @@ services:
       options:  
         syslog-address: "tcp://127.0.0.1:1514"
         tag: "postgresql"
-  adminserver:
-    image: goharbor/harbor-adminserver:__version__
-    container_name: harbor-adminserver
+  core:
+    image: goharbor/harbor-core:__version__
+    container_name: harbor-core
     env_file:
-      - ./common/config/adminserver/env
+      - ./common/config/core/env
+      - ./common/config/core/config_env
     restart: always
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
     volumes:
-      - /data/config/:/etc/adminserver/config/:z
-      - /data/secretkey:/etc/adminserver/key:z
+      - ./common/config/core/app.conf:/etc/core/app.conf:z
+      - ./common/config/core/private_key.pem:/etc/core/private_key.pem:z
+      - ./common/config/core/certificates/:/etc/core/certificates/:z
+      - /data/secretkey:/etc/core/key:z
+      - /data/ca_download/:/etc/core/ca/:z
+      - /data/psc/:/etc/core/token/:z
       - /data/:/data/:z
     networks:
       - harbor
+    dns_search: .
     depends_on:
       - log
-    logging:
-      driver: "syslog"
-      options:  
-        syslog-address: "tcp://127.0.0.1:1514"
-        tag: "adminserver"
-  ui:
-    image: goharbor/harbor-ui:__version__
-    container_name: harbor-ui
-    env_file:
-      - ./common/config/ui/env
-    restart: always
-    volumes:
-      - ./common/config/ui/app.conf:/etc/ui/app.conf:z
-      - ./common/config/ui/private_key.pem:/etc/ui/private_key.pem:z
-      - ./common/config/ui/certificates/:/etc/ui/certificates/:z
-      - /data/secretkey:/etc/ui/key:z
-      - /data/ca_download/:/etc/ui/ca/:z
-      - /data/psc/:/etc/ui/token/:z
-    networks:
-      - harbor
-    depends_on:
-      - log
-      - adminserver
       - registry
     logging:
       driver: "syslog"
       options:  
         syslog-address: "tcp://127.0.0.1:1514"
-        tag: "ui"
+        tag: "core"
+  portal:
+    image: goharbor/harbor-portal:__version__
+    container_name: harbor-portal
+    restart: always
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - NET_BIND_SERVICE
+    networks:
+      - harbor
+    dns_search: .
+    depends_on:
+      - log
+      - core
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "tcp://127.0.0.1:1514"
+        tag: "portal"
+
   jobservice:
     image: goharbor/harbor-jobservice:__version__
     container_name: harbor-jobservice
     env_file:
       - ./common/config/jobservice/env
     restart: always
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
     volumes:
       - /data/job_logs:/var/log/jobs:z
       - ./common/config/jobservice/config.yml:/etc/jobservice/config.yml:z
     networks:
       - harbor
+    dns_search: .
     depends_on:
       - redis
-      - ui
-      - adminserver
+      - core
     logging:
       driver: "syslog"
-      options:  
+      options:
         syslog-address: "tcp://127.0.0.1:1514"
         tag: "jobservice"
   redis:
     image: goharbor/redis-photon:__redis_version__
     container_name: redis
     restart: always
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
     volumes:
       - /data/redis:/var/lib/redis
     networks:
       - harbor
+    dns_search: .
     depends_on:
       - log
     logging:
       driver: "syslog"
-      options:  
+      options:
         syslog-address: "tcp://127.0.0.1:1514"
         tag: "redis"
   proxy:
-    image: goharbor/nginx-photon:__nginx_version__
+    image: goharbor/nginx-photon:__version__
     container_name: nginx
     restart: always
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - NET_BIND_SERVICE
     volumes:
       - ./common/config/nginx:/etc/nginx:z
     networks:
       - harbor
+    dns_search: .
     ports:
       - 80:80
       - 443:443
@@ -160,7 +219,8 @@ services:
     depends_on:
       - postgresql
       - registry
-      - ui
+      - core
+      - portal
       - log
     logging:
       driver: "syslog"

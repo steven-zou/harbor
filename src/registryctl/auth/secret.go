@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import (
 	"github.com/goharbor/harbor/src/common/secret"
 )
 
-//HarborSecret is the prefix of the value of Authorization header.
+// HarborSecret is the prefix of the value of Authorization header.
 const HarborSecret = secret.HeaderPrefix
 
 var (
@@ -34,7 +34,7 @@ type secretHandler struct {
 	secrets map[string]string
 }
 
-// NewSecretHandler creaters a new authentiation handler which adds
+// NewSecretHandler creates a new authentication handler which adds
 // basic authentication credentials to a request.
 func NewSecretHandler(secrets map[string]string) AuthenticationHandler {
 	return &secretHandler{

@@ -1,3 +1,17 @@
+// Copyright Project Harbor Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package replication
 
 import (
@@ -258,6 +272,12 @@ func (t *Transfer) transferLayers(tag string, blobs []distribution.Descriptor) e
 		}
 
 		digest := blob.Digest.String()
+
+		if blob.MediaType == schema2.MediaTypeForeignLayer {
+			t.logger.Infof("blob %s of %s:%s is an foreign layer, skip", digest, repository, tag)
+			continue
+		}
+
 		exist, err := t.dstRegistry.BlobExist(digest)
 		if err != nil {
 			t.logger.Errorf("an error occurred while checking existence of blob %s of %s:%s on destination registry: %v",

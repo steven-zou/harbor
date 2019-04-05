@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,21 +17,22 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/goharbor/harbor/src/common"
 	notarytest "github.com/goharbor/harbor/src/common/utils/notary/test"
-	utilstest "github.com/goharbor/harbor/src/common/utils/test"
-	"github.com/goharbor/harbor/src/ui/config"
+	"github.com/goharbor/harbor/src/common/utils/test"
+	"github.com/goharbor/harbor/src/core/config"
+	"github.com/stretchr/testify/assert"
 
 	"net/http/httptest"
 	"os"
 	"path"
 	"testing"
+
+	"github.com/goharbor/harbor/src/common"
+	"github.com/goharbor/harbor/src/common/utils/log"
 )
 
 var endpoint = "10.117.4.142"
 var notaryServer *httptest.Server
-var adminServer *httptest.Server
 
 func TestMain(m *testing.M) {
 	notaryServer = notarytest.NewNotaryServer(endpoint)
@@ -42,17 +43,12 @@ func TestMain(m *testing.M) {
 		common.CfgExpiration:   5,
 		common.TokenExpiration: 30,
 	}
-	adminServer, err := utilstest.NewAdminserver(defaultConfig)
-	if err != nil {
-		panic(err)
-	}
-	defer adminServer.Close()
-	if err := os.Setenv("ADMINSERVER_URL", adminServer.URL); err != nil {
-		panic(err)
-	}
+
 	if err := config.Init(); err != nil {
-		panic(err)
+		log.Fatalf("failed to initialize config: %v", err)
 	}
+	test.InitDatabaseFromEnv()
+	config.Upload(defaultConfig)
 	notaryCachePath = "/tmp/notary"
 	result := m.Run()
 	if result != 0 {

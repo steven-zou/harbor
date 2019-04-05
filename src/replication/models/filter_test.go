@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,43 +18,43 @@ import (
 	"testing"
 
 	"github.com/astaxie/beego/validation"
-	"github.com/stretchr/testify/assert"
 	"github.com/goharbor/harbor/src/replication"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestValid(t *testing.T) {
 	cases := map[*Filter]bool{
-		&Filter{}: true,
-		&Filter{
+		{}: true,
+		{
 			Kind: "invalid_kind",
 		}: true,
-		&Filter{
+		{
 			Kind: replication.FilterItemKindRepository,
 		}: true,
-		&Filter{
+		{
 			Kind:    replication.FilterItemKindRepository,
 			Pattern: "*",
 		}: false,
-		&Filter{
+		{
 			Kind:  replication.FilterItemKindRepository,
 			Value: "*",
 		}: false,
-		&Filter{
+		{
 			Kind: replication.FilterItemKindLabel,
 		}: true,
-		&Filter{
+		{
 			Kind:  replication.FilterItemKindLabel,
 			Value: "",
 		}: true,
-		&Filter{
+		{
 			Kind:  replication.FilterItemKindLabel,
 			Value: 1.2,
 		}: true,
-		&Filter{
+		{
 			Kind:  replication.FilterItemKindLabel,
 			Value: -1,
 		}: true,
-		&Filter{
+		{
 			Kind:  replication.FilterItemKindLabel,
 			Value: 1,
 		}: true,

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,8 +34,8 @@ func (l *LabelFilter) Init() error {
 	return nil
 }
 
-// GetConvertor ...
-func (l *LabelFilter) GetConvertor() Convertor {
+// GetConverter ...
+func (l *LabelFilter) GetConverter() Converter {
 	return nil
 }
 

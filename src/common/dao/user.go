@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -94,7 +94,7 @@ func LoginByDb(auth models.AuthModel) (*models.User, error) {
 		return nil, nil
 	}
 
-	user.Password = "" //do not return the password
+	user.Password = "" // do not return the password
 
 	return &user, nil
 }
@@ -106,10 +106,13 @@ func GetTotalOfUsers(query *models.UserQuery) (int64, error) {
 
 // ListUsers lists all users according to different conditions.
 func ListUsers(query *models.UserQuery) ([]models.User, error) {
+	qs := userQueryConditions(query)
+	if query != nil && query.Pagination != nil {
+		offset := (query.Pagination.Page - 1) * query.Pagination.Size
+		qs = qs.Offset(offset).Limit(query.Pagination.Size)
+	}
 	users := []models.User{}
-	_, err := userQueryConditions(query).Limit(-1).
-		OrderBy("username").
-		All(&users)
+	_, err := qs.OrderBy("username").All(&users)
 	return users, err
 }
 
@@ -244,7 +247,7 @@ func OnBoardUser(u *models.User) error {
 	return nil
 }
 
-//IsSuperUser checks if the user is super user(conventionally id == 1) of Harbor
+// IsSuperUser checks if the user is super user(conventionally id == 1) of Harbor
 func IsSuperUser(username string) bool {
 	u, err := GetUser(models.User{
 		Username: username,
@@ -257,7 +260,7 @@ func IsSuperUser(username string) bool {
 	return u != nil && u.UserID == 1
 }
 
-//CleanUser - Clean this user information from DB
+// CleanUser - Clean this user information from DB
 func CleanUser(id int64) error {
 	if _, err := GetOrmer().QueryTable(&models.User{}).
 		Filter("UserID", id).Delete(); err != nil {

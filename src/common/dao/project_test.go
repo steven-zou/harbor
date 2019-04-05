@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -233,5 +233,32 @@ func TestGetRolesByLDAPGroup(t *testing.T) {
 				t.Errorf("TestGetRolesByLDAPGroup() = %v, want %v", len(got), tt.wantSize)
 			}
 		})
+	}
+}
+
+func TestProjetExistsByName(t *testing.T) {
+	name := "project_exist_by_name_test"
+	exist := ProjectExistsByName(name)
+	if exist {
+		t.Errorf("project %s expected to be not exist", name)
+	}
+
+	project := models.Project{
+		OwnerID: currentUser.UserID,
+		Name:    name,
+	}
+	id, err := AddProject(project)
+	if err != nil {
+		t.Fatalf("failed to add project: %v", err)
+	}
+	defer func() {
+		if err := delProjPermanent(id); err != nil {
+			t.Errorf("failed to clear up project %d: %v", id, err)
+		}
+	}()
+
+	exist = ProjectExistsByName(name)
+	if !exist {
+		t.Errorf("project %s expected to be exist", name)
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/docker/distribution/manifest/schema2"
-	registry_error "github.com/goharbor/harbor/src/common/utils/error"
+	commonhttp "github.com/goharbor/harbor/src/common/http"
 	"github.com/goharbor/harbor/src/common/utils/test"
 )
 
@@ -50,7 +50,7 @@ var (
 func TestBlobExist(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
-		dgt := path[strings.LastIndex(path, "/")+1 : len(path)]
+		dgt := path[strings.LastIndex(path, "/")+1:]
 		if dgt == digest {
 			w.Header().Add(http.CanonicalHeaderKey("Content-Length"), strconv.Itoa(len(blob)))
 			w.Header().Add(http.CanonicalHeaderKey("Docker-Content-Digest"), digest)
@@ -205,7 +205,7 @@ func TestDeleteBlob(t *testing.T) {
 func TestManifestExist(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
-		tg := path[strings.LastIndex(path, "/")+1 : len(path)]
+		tg := path[strings.LastIndex(path, "/")+1:]
 		if tg == tag {
 			w.Header().Add(http.CanonicalHeaderKey("Docker-Content-Digest"), digest)
 			w.Header().Add(http.CanonicalHeaderKey("Content-Type"), mediaType)
@@ -392,10 +392,10 @@ func TestListTag(t *testing.T) {
 
 func TestParseError(t *testing.T) {
 	err := &url.Error{
-		Err: &registry_error.HTTPError{},
+		Err: &commonhttp.Error{},
 	}
 	e := parseError(err)
-	if _, ok := e.(*registry_error.HTTPError); !ok {
+	if _, ok := e.(*commonhttp.Error); !ok {
 		t.Errorf("error type does not match registry error")
 	}
 }
@@ -421,4 +421,38 @@ func TestBuildMonolithicBlobUploadURL(t *testing.T) {
 	url, err = buildMonolithicBlobUploadURL(endpoint, location, digest)
 	require.Nil(t, err)
 	assert.Equal(t, expected, url)
+}
+
+func TestBuildMountBlobURL(t *testing.T) {
+	endpoint := "http://192.169.0.1"
+	repoName := "library/hello-world"
+	digest := "sha256:ef15416724f6e2d5d5b422dc5105add931c1f2a45959cd4993e75e47957b3b55"
+	from := "library/hi-world"
+	expected := fmt.Sprintf("%s/v2/%s/blobs/uploads/?mount=%s&from=%s", endpoint, repoName, digest, from)
+
+	actual := buildMountBlobURL(endpoint, repoName, digest, from)
+	assert.Equal(t, expected, actual)
+}
+
+func TestMountBlob(t *testing.T) {
+	mountHandler := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusAccepted)
+	}
+
+	server := test.NewServer(
+		&test.RequestHandlerMapping{
+			Method:  "POST",
+			Pattern: fmt.Sprintf("/v2/%s/blobs/uploads/", repository),
+			Handler: mountHandler,
+		})
+	defer server.Close()
+
+	client, err := newRepository(server.URL)
+	if err != nil {
+		t.Fatalf("failed to create client for repository: %v", err)
+	}
+
+	if err = client.MountBlob(digest, "library/hi-world"); err != nil {
+		t.Fatalf("failed to mount blob: %v", err)
+	}
 }

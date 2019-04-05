@@ -1,11 +1,21 @@
-// Copyright 2018 The Harbor Authors. All rights reserved.
+// Copyright Project Harbor Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package core
 
 import (
 	"errors"
 	"testing"
-
-	"github.com/goharbor/harbor/src/jobservice/errs"
 
 	"github.com/goharbor/harbor/src/jobservice/env"
 	"github.com/goharbor/harbor/src/jobservice/models"
@@ -129,11 +139,7 @@ func TestGetJobLogData(t *testing.T) {
 	pool := &fakePool{}
 	c := NewController(pool)
 
-	if _, err := c.GetJobLogData("fake_ID"); err != nil {
-		if !errs.IsObjectNotFoundError(err) {
-			t.Errorf("expect object not found error but got '%s'\n", err)
-		}
-	} else {
+	if _, err := c.GetJobLogData("fake_ID"); err == nil {
 		t.Fatal("expect error but got nil")
 	}
 }
@@ -254,7 +260,7 @@ func (f *fakePool) PeriodicallyEnqueue(jobName string, params models.Parameters,
 func (f *fakePool) Stats() (models.JobPoolStats, error) {
 	return models.JobPoolStats{
 		Pools: []*models.JobPoolStatsData{
-			&models.JobPoolStatsData{
+			{
 				Status: "running",
 			},
 		},

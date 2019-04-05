@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,35 +17,35 @@ package source
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/goharbor/harbor/src/replication"
 	"github.com/goharbor/harbor/src/replication/models"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTagConvert(t *testing.T) {
 	items := []models.FilterItem{
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindRepository,
 			Value: "library/ubuntu",
 		},
-		models.FilterItem{
+		{
 			Kind: replication.FilterItemKindProject,
 		},
 	}
 	expected := []models.FilterItem{
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindTag,
 			Value: "library/ubuntu:14.04",
 		},
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindTag,
 			Value: "library/ubuntu:16.04",
 		},
-		models.FilterItem{
+		{
 			Kind: replication.FilterItemKindProject,
 		},
 	}
 
-	convertor := NewTagConvertor(&fakeRegistryAdaptor{})
-	assert.EqualValues(t, expected, convertor.Convert(items))
+	converter := NewTagConverter(&fakeRegistryAdaptor{})
+	assert.EqualValues(t, expected, converter.Convert(items))
 }

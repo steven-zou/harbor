@@ -1,4 +1,16 @@
-// Copyright 2018 The Harbor Authors. All rights reserved.
+// Copyright Project Harbor Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package opm
 
 import (
@@ -6,16 +18,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/gomodule/redigo/redis"
 	"github.com/goharbor/harbor/src/jobservice/job"
 	"github.com/goharbor/harbor/src/jobservice/models"
 	"github.com/goharbor/harbor/src/jobservice/utils"
+	"github.com/gomodule/redigo/redis"
 )
 
 const (
@@ -48,7 +62,7 @@ func TestSetJobStatus(t *testing.T) {
 	mgr.Start()
 	defer mgr.Shutdown()
 	<-time.After(200 * time.Millisecond)
-	//make sure data existing
+	// make sure data existing
 	testingStats := createFakeStats()
 	mgr.Save(testingStats)
 	<-time.After(200 * time.Millisecond)
@@ -76,7 +90,7 @@ func TestCommand(t *testing.T) {
 	defer mgr.Shutdown()
 	<-time.After(200 * time.Millisecond)
 
-	if err := mgr.SendCommand("fake_job_ID", CtlCommandStop); err != nil {
+	if err := mgr.SendCommand("fake_job_ID", CtlCommandStop, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -147,7 +161,7 @@ func TestExpireJobStats(t *testing.T) {
 	defer mgr.Shutdown()
 	<-time.After(200 * time.Millisecond)
 
-	//make sure data existing
+	// make sure data existing
 	testingStats := createFakeStats()
 	mgr.Save(testingStats)
 	<-time.After(200 * time.Millisecond)
@@ -168,13 +182,31 @@ func TestCheckIn(t *testing.T) {
 	defer mgr.Shutdown()
 	<-time.After(200 * time.Millisecond)
 
-	//make sure data existing
+	// make sure data existing
 	testingStats := createFakeStats()
 	mgr.Save(testingStats)
 	<-time.After(200 * time.Millisecond)
 
-	//Start http server
+	// Start http server
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		data, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		defer r.Body.Close()
+
+		statusReport := &models.JobStatusChange{}
+		if err := json.Unmarshal(data, statusReport); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if statusReport.Metadata == nil || statusReport.Metadata.JobID != "fake_job_ID" {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		fmt.Fprintln(w, "ok")
 	}))
 	defer ts.Close()
@@ -201,10 +233,56 @@ func TestCheckIn(t *testing.T) {
 	}
 }
 
+func TestExecutionRelated(t *testing.T) {
+	mgr := createStatsManager(redisPool)
+	mgr.Start()
+	defer mgr.Shutdown()
+	<-time.After(200 * time.Millisecond)
+
+	if err := mgr.AttachExecution("upstream_id", "id1", "id2", "id3"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Wait for data is stable
+	<-time.After(200 * time.Millisecond)
+	ids, err := mgr.GetExecutions("upstream_id")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Join(ids, "/") != "id1/id2/id3" {
+		t.Fatalf("expect 'id1/id2/id3' but got %s", strings.Join(ids, " / "))
+	}
+}
+
+func TestUpdateJobStats(t *testing.T) {
+	mgr := createStatsManager(redisPool)
+	mgr.Start()
+	defer mgr.Shutdown()
+	<-time.After(200 * time.Millisecond)
+
+	// make sure data existing
+	testingStats := createFakeStats()
+	mgr.Save(testingStats)
+	<-time.After(200 * time.Millisecond)
+
+	mgr.Update("fake_job_ID", "status", "Error")
+	<-time.After(200 * time.Millisecond)
+
+	updatedStats, err := mgr.Retrieve("fake_job_ID")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if updatedStats.Stats.Status != "Error" {
+		t.Fatalf("expect status to be '%s' but got '%s'", "Error", updatedStats.Stats.Status)
+	}
+}
+
 func getRedisHost() string {
 	redisHost := os.Getenv(testingRedisHost)
 	if redisHost == "" {
-		redisHost = "10.160.178.186" //for local test
+		redisHost = "localhost" // for local test
 	}
 
 	return redisHost

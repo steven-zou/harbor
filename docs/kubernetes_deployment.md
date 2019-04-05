@@ -1,4 +1,4 @@
-**IMPORTANT** This guide is deprecated and not updated any more. We strongly recommend using [Harbor Helm Chart](https://github.com/goharbor/harbor/tree/master/contrib/helm/harbor) to deploy latest Harbor release on Kubernetes.
+**IMPORTANT** This guide is deprecated and not updated any more. We strongly recommend using [Harbor Helm Chart](https://github.com/goharbor/harbor-helm) to deploy latest Harbor release on Kubernetes.
 
 ## Integration with Kubernetes
 This Document decribes how to deploy Harbor on Kubernetes. It has been verified on **Kubernetes v1.6.5** and **Harbor v1.2.0**
@@ -65,7 +65,7 @@ These Basic Configuration must be set. Otherwise you can't deploy Harbor on Kube
     path: /data/registry
   ```
 
-  For more infomation about storage solution, Please check [Kubernetes Document](http://kubernetes.io/docs/user-guide/persistent-volumes/) 
+  For more information about storage solution, Please check [Kubernetes Document](http://kubernetes.io/docs/user-guide/persistent-volumes/) 
 
 Then you can generate ConfigMap files by :
 
@@ -93,7 +93,7 @@ If Basic Configuration was not covering your requirements, you can read this sec
 You can find all configs of Harbor in `make/kubernetes/templates/`. There are specifications of these files:
 
 - `jobservice.cm.yaml`: ENV and web config of jobservice
-- `mysql.cm.yaml`: Root passowrd of MySQL
+- `mysql.cm.yaml`: Root password of MySQL
 - `ingress.yaml`: Https certification and ingress config. If you are fimiliar with ingress, you can modify it.
 - `registry.cm.yaml`: Token service certification and registry config
   Registry use filesystem to store data of images. You can find it like:

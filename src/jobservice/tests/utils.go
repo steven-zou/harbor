@@ -1,6 +1,18 @@
-// Copyright 2018 The Harbor Authors. All rights reserved.
+// Copyright Project Harbor Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-//Package tests provide test utilities
+// Package tests provide test utilities
 package tests
 
 import (
@@ -21,7 +33,7 @@ const (
 	testingNamespace      = "testing_job_service_v2"
 )
 
-//GiveMeRedisPool ...
+// GiveMeRedisPool ...
 func GiveMeRedisPool() *redis.Pool {
 	redisHost := getRedisHost()
 	redisPool := &redis.Pool{
@@ -42,12 +54,12 @@ func GiveMeRedisPool() *redis.Pool {
 	return redisPool
 }
 
-//GiveMeTestNamespace ...
+// GiveMeTestNamespace ...
 func GiveMeTestNamespace() string {
 	return testingNamespace
 }
 
-//Clear ...
+// Clear ...
 func Clear(key string, conn redis.Conn) error {
 	if conn != nil {
 		defer conn.Close()
@@ -58,7 +70,7 @@ func Clear(key string, conn redis.Conn) error {
 	return errors.New("failed to clear")
 }
 
-//ClearAll ...
+// ClearAll ...
 func ClearAll(namespace string, conn redis.Conn) error {
 	defer conn.Close()
 
@@ -83,7 +95,7 @@ func ClearAll(namespace string, conn redis.Conn) error {
 func getRedisHost() string {
 	redisHost := os.Getenv(testingRedisHost)
 	if redisHost == "" {
-		redisHost = "10.160.178.186" //for local test
+		redisHost = "127.0.0.1" // for local test
 	}
 
 	return redisHost

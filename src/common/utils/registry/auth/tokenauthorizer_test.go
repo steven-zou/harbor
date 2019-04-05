@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,10 +23,10 @@ import (
 	"time"
 
 	"github.com/docker/distribution/registry/auth/token"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/goharbor/harbor/src/common/models"
 	"github.com/goharbor/harbor/src/common/utils/test"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFilterReq(t *testing.T) {
@@ -116,10 +116,9 @@ func TestParseScopes(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(scopses))
 	assert.EqualValues(t, &token.ResourceActions{
-		Type: "repository",
-		Name: "library/mysql/5.6",
-		Actions: []string{
-			"push"},
+		Type:    "repository",
+		Name:    "library/mysql/5.6",
+		Actions: []string{"pull", "push"},
 	}, scopses[0])
 
 	// invalid
@@ -206,4 +205,18 @@ func TestModifyOfStandardTokenAuthorizer(t *testing.T) {
 
 	tk := req.Header.Get("Authorization")
 	assert.Equal(t, strings.ToLower("Bearer "+token.Token), strings.ToLower(tk))
+}
+
+func TestUserAgentModifier(t *testing.T) {
+	agent := "harbor-registry-client"
+	modifier := &UserAgentModifier{
+		UserAgent: agent,
+	}
+	req, err := http.NewRequest(http.MethodGet, "http://registry/v2/", nil)
+	require.Nil(t, err)
+	modifier.Modify(req)
+	actual := req.Header.Get("User-Agent")
+	if actual != agent {
+		t.Errorf("expect request to have header User-Agent=%s, but got User-Agent=%s", agent, actual)
+	}
 }

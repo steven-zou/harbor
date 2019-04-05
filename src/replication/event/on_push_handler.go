@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,9 +20,9 @@ import (
 	"reflect"
 
 	common_models "github.com/goharbor/harbor/src/common/models"
-	"github.com/goharbor/harbor/src/common/notifier"
 	"github.com/goharbor/harbor/src/common/utils"
 	"github.com/goharbor/harbor/src/common/utils/log"
+	"github.com/goharbor/harbor/src/core/notifier"
 	"github.com/goharbor/harbor/src/replication"
 	"github.com/goharbor/harbor/src/replication/event/notification"
 	"github.com/goharbor/harbor/src/replication/event/topic"
@@ -30,10 +30,10 @@ import (
 	"github.com/goharbor/harbor/src/replication/trigger"
 )
 
-//OnPushHandler implements the notification handler interface to handle image on push event.
+// OnPushHandler implements the notification handler interface to handle image on push event.
 type OnPushHandler struct{}
 
-//Handle implements the same method of notification handler interface
+// Handle implements the same method of notification handler interface
 func (oph *OnPushHandler) Handle(value interface{}) error {
 	if value == nil {
 		return errors.New("OnPushHandler can not handle nil value")
@@ -49,9 +49,9 @@ func (oph *OnPushHandler) Handle(value interface{}) error {
 	return checkAndTriggerReplication(notification.Image, common_models.RepOpTransfer)
 }
 
-//IsStateful implements the same method of notification handler interface
+// IsStateful implements the same method of notification handler interface
 func (oph *OnPushHandler) IsStateful() bool {
-	//Statless
+	// Statless
 	return false
 }
 

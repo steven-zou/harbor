@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -31,8 +31,8 @@ type User struct {
 	Comment  string `orm:"column(comment)" json:"comment"`
 	Deleted  bool   `orm:"column(deleted)" json:"deleted"`
 	Rolename string `orm:"-" json:"role_name"`
-	//if this field is named as "RoleID", beego orm can not map role_id
-	//to it.
+	// if this field is named as "RoleID", beego orm can not map role_id
+	// to it.
 	Role int `orm:"-" json:"role_id"`
 	//	RoleList     []Role `json:"role_list"`
 	HasAdminRole bool         `orm:"column(sysadmin_flag)" json:"has_admin_role"`
@@ -41,6 +41,7 @@ type User struct {
 	CreationTime time.Time    `orm:"column(creation_time);auto_now_add" json:"creation_time"`
 	UpdateTime   time.Time    `orm:"column(update_time);auto_now" json:"update_time"`
 	GroupList    []*UserGroup `orm:"-" json:"-"`
+	OIDCUserMeta *OIDCUser    `orm:"-" json:"oidc_user_meta,omitempty"`
 }
 
 // UserQuery ...

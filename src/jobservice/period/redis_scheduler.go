@@ -1,4 +1,16 @@
-// Copyright 2018 The Harbor Authors. All rights reserved.
+// Copyright Project Harbor Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package period
 
@@ -10,24 +22,25 @@ import (
 	"time"
 
 	"github.com/goharbor/harbor/src/jobservice/errs"
+	"github.com/goharbor/harbor/src/jobservice/opm"
 
 	"github.com/robfig/cron"
 
-	"github.com/gomodule/redigo/redis"
 	"github.com/goharbor/harbor/src/jobservice/env"
 	"github.com/goharbor/harbor/src/jobservice/logger"
 	"github.com/goharbor/harbor/src/jobservice/models"
 	"github.com/goharbor/harbor/src/jobservice/utils"
+	"github.com/gomodule/redigo/redis"
 )
 
 const (
-	//EventSchedulePeriodicPolicy is for scheduling periodic policy event
+	// EventSchedulePeriodicPolicy is for scheduling periodic policy event
 	EventSchedulePeriodicPolicy = "schedule"
-	//EventUnSchedulePeriodicPolicy is for unscheduling periodic policy event
+	// EventUnSchedulePeriodicPolicy is for unscheduling periodic policy event
 	EventUnSchedulePeriodicPolicy = "unschedule"
 )
 
-//RedisPeriodicScheduler manages the periodic scheduling policies.
+// RedisPeriodicScheduler manages the periodic scheduling policies.
 type RedisPeriodicScheduler struct {
 	context   *env.Context
 	redisPool *redis.Pool
@@ -36,13 +49,13 @@ type RedisPeriodicScheduler struct {
 	enqueuer  *periodicEnqueuer
 }
 
-//NewRedisPeriodicScheduler is constructor of RedisPeriodicScheduler
-func NewRedisPeriodicScheduler(ctx *env.Context, namespace string, redisPool *redis.Pool) *RedisPeriodicScheduler {
+// NewRedisPeriodicScheduler is constructor of RedisPeriodicScheduler
+func NewRedisPeriodicScheduler(ctx *env.Context, namespace string, redisPool *redis.Pool, statsManager opm.JobStatsManager) *RedisPeriodicScheduler {
 	pstore := &periodicJobPolicyStore{
 		lock:     new(sync.RWMutex),
 		policies: make(map[string]*PeriodicJobPolicy),
 	}
-	enqueuer := newPeriodicEnqueuer(namespace, redisPool, pstore)
+	enqueuer := newPeriodicEnqueuer(namespace, redisPool, pstore, statsManager)
 
 	return &RedisPeriodicScheduler{
 		context:   ctx,
@@ -53,29 +66,29 @@ func NewRedisPeriodicScheduler(ctx *env.Context, namespace string, redisPool *re
 	}
 }
 
-//Start to serve
+// Start to serve
 func (rps *RedisPeriodicScheduler) Start() {
 	defer func() {
 		logger.Info("Redis scheduler is stopped")
 	}()
 
-	//Load existing periodic job policies
+	// Load existing periodic job policies
 	if err := rps.Load(); err != nil {
-		//exit now
+		// exit now
 		rps.context.ErrorChan <- err
 		return
 	}
 
-	//start enqueuer
+	// start enqueuer
 	rps.enqueuer.start()
 	defer rps.enqueuer.stop()
 	logger.Info("Redis scheduler is started")
 
-	//blocking here
+	// blocking here
 	<-rps.context.SystemContext.Done()
 }
 
-//Schedule is implementation of the same method in period.Interface
+// Schedule is implementation of the same method in period.Interface
 func (rps *RedisPeriodicScheduler) Schedule(jobName string, params models.Parameters, cronSpec string) (string, int64, error) {
 	if utils.IsEmptyStr(jobName) {
 		return "", 0, errors.New("empty job name is not allowed")
@@ -84,35 +97,36 @@ func (rps *RedisPeriodicScheduler) Schedule(jobName string, params models.Parame
 		return "", 0, errors.New("cron spec is not set")
 	}
 
-	//Get next run time
+	// Get next run time
 	schedule, err := cron.Parse(cronSpec)
 	if err != nil {
 		return "", 0, err
 	}
 
-	//Although the ZSET can guarantee no duplicated items, we still need to check the existing
-	//of the job policy to avoid publish duplicated ones to other nodes as we
-	//use transaction commands.
+	// Although the ZSET can guarantee no duplicated items, we still need to check the existing
+	// of the job policy to avoid publish duplicated ones to other nodes as we
+	// use transaction commands.
 	jobPolicy := &PeriodicJobPolicy{
 		JobName:       jobName,
 		JobParameters: params,
 		CronSpec:      cronSpec,
 	}
-	//Serialize data
+	// Serialize data
 	rawJSON, err := jobPolicy.Serialize()
 	if err != nil {
 		return "", 0, nil
 	}
 
-	//Check existing
-	//If existing, treat as a succeed submitting and return the exitsing id
+	// Check existing
+	// If existing, treat as a succeed submitting and return the exitsing id
 	if score, ok := rps.exists(string(rawJSON)); ok {
-		id, err := rps.getIDByScore(score)
-		return id, 0, err
+		// Ignore error
+		id, _ := rps.getIDByScore(score)
+		return "", 0, errs.ConflictError(id)
 	}
 
 	uuid, score := utils.MakePeriodicPolicyUUID()
-	//Set back policy ID
+	// Set back policy ID
 	jobPolicy.PolicyID = uuid
 	notification := &models.Message{
 		Event: EventSchedulePeriodicPolicy,
@@ -123,7 +137,7 @@ func (rps *RedisPeriodicScheduler) Schedule(jobName string, params models.Parame
 		return "", 0, err
 	}
 
-	//Save to redis db and publish notification via redis transaction
+	// Save to redis db and publish notification via redis transaction
 	conn := rps.redisPool.Get()
 	defer conn.Close()
 
@@ -151,7 +165,7 @@ func (rps *RedisPeriodicScheduler) Schedule(jobName string, params models.Parame
 	return uuid, schedule.Next(time.Now()).Unix(), nil
 }
 
-//UnSchedule is implementation of the same method in period.Interface
+// UnSchedule is implementation of the same method in period.Interface
 func (rps *RedisPeriodicScheduler) UnSchedule(cronJobPolicyID string) error {
 	if utils.IsEmptyStr(cronJobPolicyID) {
 		return errors.New("cron job policy ID is empty")
@@ -169,7 +183,7 @@ func (rps *RedisPeriodicScheduler) UnSchedule(cronJobPolicyID string) error {
 	notification := &models.Message{
 		Event: EventUnSchedulePeriodicPolicy,
 		Data: &PeriodicJobPolicy{
-			PolicyID: cronJobPolicyID, //Only ID required
+			PolicyID: cronJobPolicyID, // Only ID required
 		},
 	}
 
@@ -178,7 +192,7 @@ func (rps *RedisPeriodicScheduler) UnSchedule(cronJobPolicyID string) error {
 		return err
 	}
 
-	//REM from redis db
+	// REM from redis db
 	conn := rps.redisPool.Get()
 	defer conn.Close()
 
@@ -186,11 +200,11 @@ func (rps *RedisPeriodicScheduler) UnSchedule(cronJobPolicyID string) error {
 	if err != nil {
 		return err
 	}
-	err = conn.Send("ZREMRANGEBYSCORE", utils.KeyPeriodicPolicy(rps.namespace), score, score) //Accurately remove the item with the specified score
+	err = conn.Send("ZREMRANGEBYSCORE", utils.KeyPeriodicPolicy(rps.namespace), score, score) // Accurately remove the item with the specified score
 	if err != nil {
 		return err
 	}
-	err = conn.Send("ZREMRANGEBYSCORE", utils.KeyPeriodicPolicyScore(rps.namespace), score, score) //Remove key score mapping
+	err = conn.Send("ZREMRANGEBYSCORE", utils.KeyPeriodicPolicyScore(rps.namespace), score, score) // Remove key score mapping
 	if err != nil {
 		return err
 	}
@@ -204,12 +218,12 @@ func (rps *RedisPeriodicScheduler) UnSchedule(cronJobPolicyID string) error {
 	return err
 }
 
-//Load data from zset
+// Load data from zset
 func (rps *RedisPeriodicScheduler) Load() error {
 	conn := rps.redisPool.Get()
 	defer conn.Close()
 
-	//Let's build key score mapping locally first
+	// Let's build key score mapping locally first
 	bytes, err := redis.MultiBulk(conn.Do("ZRANGE", utils.KeyPeriodicPolicyScore(rps.namespace), 0, -1, "WITHSCORES"))
 	if err != nil {
 		return err
@@ -220,7 +234,7 @@ func (rps *RedisPeriodicScheduler) Load() error {
 		rawScore := bytes[i+1].([]byte)
 		score, err := strconv.ParseInt(string(rawScore), 10, 64)
 		if err != nil {
-			//Ignore
+			// Ignore
 			continue
 		}
 		keyScoreMap[score] = pid
@@ -238,29 +252,31 @@ func (rps *RedisPeriodicScheduler) Load() error {
 		policy := &PeriodicJobPolicy{}
 
 		if err := policy.DeSerialize(rawPolicy); err != nil {
-			//Ignore error which means the policy data is not valid
-			//Only logged
+			// Ignore error which means the policy data is not valid
+			// Only logged
 			logger.Warningf("failed to deserialize periodic policy with error:%s; raw data: %s\n", err, rawPolicy)
 			continue
 		}
 		score, err := strconv.ParseInt(string(rawScore), 10, 64)
 		if err != nil {
-			//Ignore error which means the policy data is not valid
-			//Only logged
+			// Ignore error which means the policy data is not valid
+			// Only logged
 			logger.Warningf("failed to parse the score of the periodic policy with error:%s\n", err)
 			continue
 		}
 
-		//Set back the policy ID
+		// Set back the policy ID
 		if pid, ok := keyScoreMap[score]; ok {
 			policy.PolicyID = pid
 		} else {
-			//Something wrong, should not be happended
-			//ignore here
+			// Something wrong, should not be happened
+			// ignore here
 			continue
 		}
 
 		allPeriodicPolicies = append(allPeriodicPolicies, policy)
+
+		logger.Infof("Load periodic job policy %s for job %s: %s", policy.PolicyID, policy.JobName, policy.CronSpec)
 	}
 
 	if len(allPeriodicPolicies) > 0 {
@@ -271,7 +287,7 @@ func (rps *RedisPeriodicScheduler) Load() error {
 	return nil
 }
 
-//Clear is implementation of the same method in period.Interface
+// Clear is implementation of the same method in period.Interface
 func (rps *RedisPeriodicScheduler) Clear() error {
 	conn := rps.redisPool.Get()
 	defer conn.Close()
@@ -281,7 +297,7 @@ func (rps *RedisPeriodicScheduler) Clear() error {
 	return err
 }
 
-//AcceptPeriodicPolicy is implementation of the same method in period.Interface
+// AcceptPeriodicPolicy is implementation of the same method in period.Interface
 func (rps *RedisPeriodicScheduler) AcceptPeriodicPolicy(policy *PeriodicJobPolicy) error {
 	if policy == nil || utils.IsEmptyStr(policy.PolicyID) {
 		return errors.New("nil periodic policy")
@@ -292,7 +308,7 @@ func (rps *RedisPeriodicScheduler) AcceptPeriodicPolicy(policy *PeriodicJobPolic
 	return nil
 }
 
-//RemovePeriodicPolicy is implementation of the same method in period.Interface
+// RemovePeriodicPolicy is implementation of the same method in period.Interface
 func (rps *RedisPeriodicScheduler) RemovePeriodicPolicy(policyID string) *PeriodicJobPolicy {
 	if utils.IsEmptyStr(policyID) {
 		return nil

@@ -11,29 +11,29 @@ import (
 	"github.com/goharbor/harbor/src/common/models"
 	common_utils "github.com/goharbor/harbor/src/common/utils"
 	"github.com/goharbor/harbor/src/common/utils/log"
+	"github.com/goharbor/harbor/src/core/config"
+	"github.com/goharbor/harbor/src/core/utils"
 	"github.com/goharbor/harbor/src/replication"
-	"github.com/goharbor/harbor/src/ui/config"
-	"github.com/goharbor/harbor/src/ui/utils"
 )
 
-//ScheduleTrigger will schedule a alternate policy to provide 'daily' and 'weekly' trigger ways.
+// ScheduleTrigger will schedule a alternate policy to provide 'daily' and 'weekly' trigger ways.
 type ScheduleTrigger struct {
 	params ScheduleParam
 }
 
-//NewScheduleTrigger is constructor of ScheduleTrigger
+// NewScheduleTrigger is constructor of ScheduleTrigger
 func NewScheduleTrigger(params ScheduleParam) *ScheduleTrigger {
 	return &ScheduleTrigger{
 		params: params,
 	}
 }
 
-//Kind is the implementation of same method defined in Trigger interface
+// Kind is the implementation of same method defined in Trigger interface
 func (st *ScheduleTrigger) Kind() string {
 	return replication.TriggerKindSchedule
 }
 
-//Setup is the implementation of same method defined in Trigger interface
+// Setup is the implementation of same method defined in Trigger interface
 func (st *ScheduleTrigger) Setup() error {
 	metadata := &job_models.JobMetadata{
 		JobKind: job.JobKindPeriodic,
@@ -46,7 +46,7 @@ func (st *ScheduleTrigger) Setup() error {
 		h, m, s := common_utils.ParseOfftime(st.params.Offtime)
 		metadata.Cron = fmt.Sprintf("%d %d %d * * %d", s, m, h, st.params.Weekday%7)
 	default:
-		return fmt.Errorf("unsupported schedual trigger type: %s", st.params.Type)
+		return fmt.Errorf("unsupported schedule trigger type: %s", st.params.Type)
 	}
 
 	id, err := dao.AddRepJob(models.RepJob{
@@ -61,12 +61,12 @@ func (st *ScheduleTrigger) Setup() error {
 		Name: job.ImageReplicate,
 		Parameters: map[string]interface{}{
 			"policy_id": st.params.PolicyID,
-			"url":       config.InternalUIURL(),
+			"url":       config.InternalCoreURL(),
 			"insecure":  true,
 		},
 		Metadata: metadata,
 		StatusHook: fmt.Sprintf("%s/service/notifications/jobs/replication/%d",
-			config.InternalUIURL(), id),
+			config.InternalCoreURL(), id),
 	})
 	if err != nil {
 		// clean up the job record in database
@@ -78,7 +78,7 @@ func (st *ScheduleTrigger) Setup() error {
 	return dao.SetRepJobUUID(id, uuid)
 }
 
-//Unset is the implementation of same method defined in Trigger interface
+// Unset is the implementation of same method defined in Trigger interface
 func (st *ScheduleTrigger) Unset() error {
 	jobs, err := dao.GetRepJobs(&models.RepJobQuery{
 		PolicyID:   st.params.PolicyID,

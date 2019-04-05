@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,13 +18,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/goharbor/harbor/src/common/utils/test"
 	"github.com/goharbor/harbor/src/replication"
 	"github.com/goharbor/harbor/src/replication/models"
 	"github.com/goharbor/harbor/src/replication/source"
 	"github.com/goharbor/harbor/src/replication/target"
 	"github.com/goharbor/harbor/src/replication/trigger"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
@@ -81,7 +81,7 @@ func TestGetCandidates(t *testing.T) {
 	policy := &models.ReplicationPolicy{
 		ID: 1,
 		Filters: []models.Filter{
-			models.Filter{
+			{
 				Kind:  replication.FilterItemKindTag,
 				Value: "*",
 			},
@@ -94,11 +94,11 @@ func TestGetCandidates(t *testing.T) {
 	sourcer := source.NewSourcer()
 
 	candidates := []models.FilterItem{
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindTag,
 			Value: "library/hello-world:release-1.0",
 		},
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindTag,
 			Value: "library/hello-world:latest",
 		},
@@ -110,7 +110,7 @@ func TestGetCandidates(t *testing.T) {
 	assert.Equal(t, 2, len(result))
 
 	policy.Filters = []models.Filter{
-		models.Filter{
+		{
 			Kind:  replication.FilterItemKindTag,
 			Value: "release-*",
 		},
@@ -121,7 +121,7 @@ func TestGetCandidates(t *testing.T) {
 	// test label filter
 	test.InitDatabaseFromEnv()
 	policy.Filters = []models.Filter{
-		models.Filter{
+		{
 			Kind:  replication.FilterItemKindLabel,
 			Value: int64(1),
 		},
@@ -134,17 +134,17 @@ func TestBuildFilterChain(t *testing.T) {
 	policy := &models.ReplicationPolicy{
 		ID: 1,
 		Filters: []models.Filter{
-			models.Filter{
+			{
 				Kind:  replication.FilterItemKindRepository,
 				Value: "*",
 			},
 
-			models.Filter{
+			{
 				Kind:  replication.FilterItemKindTag,
 				Value: "*",
 			},
 
-			models.Filter{
+			{
 				Kind:  replication.FilterItemKindLabel,
 				Value: int64(1),
 			},
@@ -155,4 +155,27 @@ func TestBuildFilterChain(t *testing.T) {
 
 	chain := buildFilterChain(policy, sourcer)
 	assert.Equal(t, 3, len(chain.Filters()))
+}
+
+func TestGetOpUUID(t *testing.T) {
+	uuid, err := getOpUUID()
+	assert.Nil(t, err)
+	assert.NotEmpty(t, uuid)
+
+	uuid, err = getOpUUID(map[string]interface{}{
+		"name": "test",
+	})
+	assert.Nil(t, err)
+	assert.NotEmpty(t, uuid)
+
+	uuid, err = getOpUUID(map[string]interface{}{
+		"op_uuid": 0,
+	})
+	assert.NotNil(t, err)
+
+	uuid, err = getOpUUID(map[string]interface{}{
+		"op_uuid": "0",
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, uuid, "0")
 }

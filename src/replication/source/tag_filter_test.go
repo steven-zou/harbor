@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@ package source
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/goharbor/harbor/src/replication"
 	"github.com/goharbor/harbor/src/replication/models"
 	"github.com/goharbor/harbor/src/replication/registry"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInitOfTagFilter(t *testing.T) {
@@ -28,16 +28,16 @@ func TestInitOfTagFilter(t *testing.T) {
 	assert.Nil(t, filter.Init())
 }
 
-func TestGetConvertorOfTagFilter(t *testing.T) {
+func TestGetConverterOfTagFilter(t *testing.T) {
 	filter := NewTagFilter("", &registry.HarborAdaptor{})
-	assert.NotNil(t, filter.GetConvertor())
+	assert.NotNil(t, filter.GetConverter())
 }
 
 func TestDoFilterOfTagFilter(t *testing.T) {
 	// invalid filter item type
 	filter := NewTagFilter("", &registry.HarborAdaptor{})
 	items := filter.DoFilter([]models.FilterItem{
-		models.FilterItem{
+		{
 			Kind: "invalid_type",
 		},
 	})
@@ -46,7 +46,7 @@ func TestDoFilterOfTagFilter(t *testing.T) {
 	// empty pattern
 	filter = NewTagFilter("", &registry.HarborAdaptor{})
 	items = filter.DoFilter([]models.FilterItem{
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindTag,
 			Value: "library/hello-world:latest",
 		},
@@ -56,7 +56,7 @@ func TestDoFilterOfTagFilter(t *testing.T) {
 	// non-empty pattern
 	filter = NewTagFilter("l*t", &registry.HarborAdaptor{})
 	items = filter.DoFilter([]models.FilterItem{
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindTag,
 			Value: "library/hello-world:latest",
 		},
@@ -66,7 +66,7 @@ func TestDoFilterOfTagFilter(t *testing.T) {
 	// non-empty pattern
 	filter = NewTagFilter("lates?", &registry.HarborAdaptor{})
 	items = filter.DoFilter([]models.FilterItem{
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindTag,
 			Value: "library/hello-world:latest",
 		},
@@ -76,7 +76,7 @@ func TestDoFilterOfTagFilter(t *testing.T) {
 	// non-empty pattern
 	filter = NewTagFilter("latest?", &registry.HarborAdaptor{})
 	items = filter.DoFilter([]models.FilterItem{
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindTag,
 			Value: "library/hello-world:latest",
 		},

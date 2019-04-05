@@ -35,10 +35,12 @@ Verify Image Tag
     Init Chrome Driver
     Sign In Harbor  ${HARBOR_URL}  ${HARBOR_ADMIN}  ${HARBOR_PASSWORD}
     :FOR    ${project}    IN    @{project}
-    \    Go Into Project    ${project}
+    \    @{out_has_image}=  Get Value From Json  ${json}  $.projects[?(@.name=${project})].has_image
+    \    ${has_image}  Set Variable If  @{out_has_image}[0] == ${true}  ${true}  ${false}
+    \    Go Into Project  ${project}  has_image=${has_image}
     \    @{repo}=  Get Value From Json  ${json}  $.projects[?(@name=${project})]..repo..name
     \    Loop Image Repo  @{repo}
-    \    Back To Projects
+    \    Navigate To Projects
     Close Browser
 
 Loop Image Repo
@@ -52,11 +54,13 @@ Verify Member Exist
     Init Chrome Driver
     Sign In Harbor  ${HARBOR_URL}  ${HARBOR_ADMIN}  ${HARBOR_PASSWORD}
     :For    ${project}    In    @{project}
-    \   Go Into Project    ${project} 
+    \   @{out_has_image}=  Get Value From Json  ${json}  $.projects[?(@.name=${project})].has_image
+    \   ${has_image}  Set Variable If  @{out_has_image}[0] == ${true}  ${true}  ${false}
+    \   Go Into Project  ${project}  has_image=${has_image}
     \   Switch To Member
     \   @{members}=  Get Value From Json  ${json}  $.projects[?(@name=${project})].member..name
     \   Loop Member  @{members}
-    \   Back To Projects
+    \   Navigate To Projects
     Close Browser
 
 Loop Member
@@ -91,12 +95,14 @@ Verify Project Label
    Init Chrome Driver
    Sign In Harbor  ${HARBOR_URL}  ${HARBOR_ADMIN}  ${HARBOR_PASSWORD}
     :For    ${project}    In    @{project}
-   \    Go Into Project  ${project}
-   \    Switch To Project Label
-   \    @{projectlabel}=  Get Value From Json  ${json}  $.projects[?(@.name=${project})]..labels..name
-   \    :For    ${label}    In    @{label}
-   \    \    Page Should Contain    ${projectlabel}
-   \    Back To Projects
+    \    @{out_has_image}=  Get Value From Json  ${json}  $.projects[?(@.name=${project})].has_image
+    \    ${has_image}  Set Variable If  @{out_has_image}[0] == ${true}  ${true}  ${false}
+    \    Go Into Project  ${project}  has_image=${has_image}
+    \    Switch To Project Label
+    \    @{projectlabel}=  Get Value From Json  ${json}  $.projects[?(@.name=${project})]..labels..name
+    \    :For    ${label}    In    @{label}
+    \    \    Page Should Contain    ${projectlabel}
+    \    Navigate To Projects
    Close Browser
       
 Verify Endpoint
@@ -129,15 +135,17 @@ Verify Project Setting
     \    ${scanonpush}=  Get Value From Json  ${json}  $.projects[?(@.name=${project})]..automatically_scan_images_on_push
     \    Init Chrome Driver 
     \    Sign In Harbor  ${HARBOR_URL}  ${HARBOR_ADMIN}  ${HARBOR_PASSWORD}
-    \    Go Into Project  ${project}
+    \    @{out_has_image}=  Get Value From Json  ${json}  $.projects[?(@.name=${project})].has_image
+    \    ${has_image}  Set Variable If  @{out_has_image}[0] == ${true}  ${true}  ${false}
+    \    Go Into Project  ${project}  has_image=${has_image}
     \    Goto Project Config
-    \    Run Keyword If  ${public} == "public"  Checkbox Should Be Checked  //clr-checkbox[@name='public']//label
-    \    Run Keyword If  ${contenttrust} == "true"  Checkbox Should Be Checked  //clr-checkbox[@name='content-trust']//label
-    \    Run Keyword If  ${contenttrust} == "false"  Checkbox Should Not Be Checked  //clr-checkbox[@name='content-trust']//label
-    \    Run Keyword If  ${preventrunning} == "true"  Checkbox Should Be Checked  //clr-checkbox[@name='prevent-vulenrability-image']//label
-    \    Run Keyword If  ${preventrunning} == "false"  Checkbox Should Not Be Checked  //clr-checkbox[@name='prevent-vulenrability-image']//label
-    \    Run Keyword If  ${scanonpush} == "true"  Checkbox Should Be Checked  //clr-checkbox[@name='scan-image-on-push']//label
-    \    Run Keyword If  ${scanonpush} == "true"  Checkbox Should Not Be Checked  //clr-checkbox[@name='scan-image-on-push']//label
+    \    Run Keyword If  ${public} == "public"  Checkbox Should Be Checked  //clr-checkbox-wrapper[@name='public']//label
+    \    Run Keyword If  ${contenttrust} == "true"  Checkbox Should Be Checked  //clr-checkbox-wrapper[@name='content-trust']//label
+    \    Run Keyword If  ${contenttrust} == "false"  Checkbox Should Not Be Checked  //clr-checkbox-wrapper[@name='content-trust']//label
+    \    Run Keyword If  ${preventrunning} == "true"  Checkbox Should Be Checked  //div[@id='prevent-vulenrability-image']//clr-checkbox-wrapper//label
+    \    Run Keyword If  ${preventrunning} == "false"  Checkbox Should Not Be Checked    //div[@id='prevent-vulenrability-image']//clr-checkbox-wrapper//label
+    \    Run Keyword If  ${scanonpush} == "true"  Checkbox Should Be Checked  //clr-checkbox-wrapper[@id='scan-image-on-push-wrapper']//input
+    \    Run Keyword If  ${scanonpush} == "true"  Checkbox Should Not Be Checked  //clr-checkbox-wrapper[@id='scan-image-on-push-wrapper']//input
     \   Close Browser
 
 Verify System Setting
@@ -155,17 +163,17 @@ Verify System Setting
     Sign In Harbor  ${HARBOR_URL}  ${HARBOR_ADMIN}  ${HARBOR_PASSWORD}
     Switch To Configure
     Page Should Contain  @{authtype}[0]
-    Run Keyword If  @{selfreg}[0] == "True"  Checkbox Should Be Checked  //clr-checkbox[@id='selfReg']//label
-    Run Keyword If  @{selfreg}[0] == "False"  Checkbox Should Not Be Checked  //clr-checkbox[@id='selfReg']//label
-    Page Should Contain  @{creation}[0]
+    Run Keyword If  @{selfreg}[0] == 'True'  Checkbox Should Be Checked  //clr-checkbox-wrapper[@id='selfReg']//label
+    Run Keyword If  @{selfreg}[0] == 'False'  Checkbox Should Not Be Checked  //clr-checkbox-wrapper[@id='selfReg']//label
     Switch To Email
-    Textfield Value Should Be  xpath=//*[@id="mailServer"]  @{emailserver}[0]
-    Textfield Value Should Be  xpath=//*[@id="emailPort"]  @{emailport}[0]
-    Textfield Value Should Be  xpath=//*[@id="emailUsername"]  @{emailuser}[0]
-    Textfield Value Should Be  xpath=//*[@id="emailFrom"]  @{emailfrom}[0]
+    Textfield Value Should Be  xpath=//*[@id='mailServer']  @{emailserver}[0]
+    Textfield Value Should Be  xpath=//*[@id='emailPort']  @{emailport}[0]
+    Textfield Value Should Be  xpath=//*[@id='emailUsername']  @{emailuser}[0]
+    Textfield Value Should Be  xpath=//*[@id='emailFrom']  @{emailfrom}[0]
     Switch To System Settings
+    Page Should Contain  @{creation}[0]
     Token Must Be Match  @{token}[0]
-    Go To Vulnerability Config
+    Switch To Vulnerability Page
     Page Should Contain  None
     Close Browser
 

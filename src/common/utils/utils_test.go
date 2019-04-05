@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -121,7 +121,7 @@ func TestReversibleEncrypt(t *testing.T) {
 	if decrypted != password {
 		t.Errorf("decrypted password: %s, is not identical to original", decrypted)
 	}
-	//Test b64 for backward compatibility
+	// Test b64 for backward compatibility
 	b64password := base64.StdEncoding.EncodeToString([]byte(password))
 	decrypted, err = ReversibleDecrypt(b64password, key)
 	if err != nil {
@@ -357,5 +357,27 @@ func TestParseOfftime(t *testing.T) {
 		assert.Equal(t, c.hour, h)
 		assert.Equal(t, c.minite, m)
 		assert.Equal(t, c.second, s)
+	}
+}
+
+func TestTrimLower(t *testing.T) {
+	type args struct {
+		str string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{"normal", args{" CN=example,DC=test,DC=com "}, "cn=example,dc=test,dc=com"},
+		{"empty", args{" "}, ""},
+		{"empty2", args{""}, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := TrimLower(tt.args.str); got != tt.want {
+				t.Errorf("TrimLower() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

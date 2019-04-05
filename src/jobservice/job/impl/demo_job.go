@@ -1,4 +1,16 @@
-// Copyright 2018 The Harbor Authors. All rights reserved.
+// Copyright Project Harbor Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package impl
 
@@ -8,29 +20,25 @@ import (
 	"strings"
 	"time"
 
-	"github.com/goharbor/harbor/src/common/dao"
-	"github.com/goharbor/harbor/src/common/models"
-	"github.com/goharbor/harbor/src/jobservice/opm"
-
-	"github.com/goharbor/harbor/src/jobservice/errs"
-
 	"github.com/goharbor/harbor/src/jobservice/env"
+	"github.com/goharbor/harbor/src/jobservice/errs"
+	"github.com/goharbor/harbor/src/jobservice/opm"
 )
 
-//DemoJob is the job to demostrate the job interface.
+// DemoJob is the job to demostrate the job interface.
 type DemoJob struct{}
 
-//MaxFails is implementation of same method in Interface.
+// MaxFails is implementation of same method in Interface.
 func (dj *DemoJob) MaxFails() uint {
 	return 3
 }
 
-//ShouldRetry ...
+// ShouldRetry ...
 func (dj *DemoJob) ShouldRetry() bool {
 	return true
 }
 
-//Validate is implementation of same method in Interface.
+// Validate is implementation of same method in Interface.
 func (dj *DemoJob) Validate(params map[string]interface{}) error {
 	if params == nil || len(params) == 0 {
 		return errors.New("parameters required for replication job")
@@ -47,31 +55,23 @@ func (dj *DemoJob) Validate(params map[string]interface{}) error {
 	return nil
 }
 
-//Run the replication logic here.
+// Run the replication logic here.
 func (dj *DemoJob) Run(ctx env.JobContext, params map[string]interface{}) error {
 	logger := ctx.GetLogger()
 
 	defer func() {
 		logger.Info("I'm finished, exit!")
-		fmt.Println("I'm finished, exit!")
 	}()
+
 	fmt.Println("I'm running")
-	logger.Info("=======Replication job running=======")
 	logger.Infof("params: %#v\n", params)
 	logger.Infof("context: %#v\n", ctx)
 	if v, ok := ctx.Get("email_from"); ok {
 		fmt.Printf("Get prop form context: email_from=%s\n", v)
 	}
-	if u, err := dao.GetUser(models.User{}); err == nil {
+	/*if u, err := dao.GetUser(models.User{}); err == nil {
 		fmt.Printf("u=%#+v\n", u)
-	}
-
-	/*if 1 != 0 {
-		return errors.New("I suicide")
 	}*/
-	//runtime error
-	//var runtime_err error = nil
-	//fmt.Println(runtime_err.Error())
 
 	logger.Info("check in 30%")
 	ctx.Checkin("30%")
@@ -83,10 +83,9 @@ func (dj *DemoJob) Run(ctx env.JobContext, params map[string]interface{}) error 
 	ctx.Checkin("100%")
 	time.Sleep(1 * time.Second)
 
-	//HOLD ON FOR A WHILE
-	logger.Error("Holding for 20 sec")
-	<-time.After(15 * time.Second)
-	//logger.Fatal("I'm back, check if I'm stopped/cancelled")
+	// HOLD ON FOR A WHILE
+	logger.Error("Holding for 5 sec")
+	<-time.After(5 * time.Second)
 
 	if cmd, ok := ctx.OPCommand(); ok {
 		logger.Infof("cmd=%s\n", cmd)
@@ -99,6 +98,28 @@ func (dj *DemoJob) Run(ctx env.JobContext, params map[string]interface{}) error 
 		logger.Info("exit for receiving stop signal")
 		return errs.JobStoppedError()
 	}
+
+	/*fmt.Println("Launch sub job")
+	jobParams := make(map[string]interface{})
+	jobParams["image"] = "demo:1.7"
+	subDemoJob := models.JobRequest{
+		Job: &models.JobData{
+			Name:       "DEMO",
+			Parameters: jobParams,
+			Metadata: &models.JobMetadata{
+				JobKind: job.JobKindGeneric,
+			},
+		},
+	}
+
+	subJob, err := ctx.LaunchJob(subDemoJob)
+	if err != nil {
+		fmt.Printf("Create sub job failed with error: %s\n", err)
+		logger.Error(err)
+		return
+	}
+
+	fmt.Printf("Sub job: %v", subJob)*/
 
 	fmt.Println("I'm close to end")
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/goharbor/harbor/src/common"
+	"github.com/goharbor/harbor/src/common/utils"
 
 	"github.com/goharbor/harbor/src/common/dao"
 	"github.com/goharbor/harbor/src/common/models"
@@ -33,7 +34,7 @@ func AddUserGroup(userGroup models.UserGroup) (int, error) {
 	var id int
 	now := time.Now()
 
-	err := o.Raw(sql, userGroup.GroupName, userGroup.GroupType, userGroup.LdapGroupDN, now, now).QueryRow(&id)
+	err := o.Raw(sql, userGroup.GroupName, userGroup.GroupType, utils.TrimLower(userGroup.LdapGroupDN), now, now).QueryRow(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -59,7 +60,7 @@ func QueryUserGroup(query models.UserGroup) ([]*models.UserGroup, error) {
 
 	if len(query.LdapGroupDN) != 0 {
 		sql += ` and ldap_group_dn = ? `
-		sqlParam = append(sqlParam, query.LdapGroupDN)
+		sqlParam = append(sqlParam, utils.TrimLower(query.LdapGroupDN))
 	}
 	if query.ID != 0 {
 		sql += ` and id = ? `
@@ -91,7 +92,7 @@ func DeleteUserGroup(id int) error {
 	o := dao.GetOrmer()
 	_, err := o.Delete(&userGroup)
 	if err == nil {
-		//Delete all related project members
+		// Delete all related project members
 		sql := `delete from project_member where entity_id = ? and entity_type='g'`
 		_, err := o.Raw(sql, id).Exec()
 		if err != nil {
@@ -115,6 +116,8 @@ func UpdateUserGroupName(id int, groupName string) error {
 // This is used for ldap and uaa authentication, such the usergroup can have an ID in Harbor.
 // the keyAttribute and combinedKeyAttribute are key columns used to check duplicate usergroup in harbor
 func OnBoardUserGroup(g *models.UserGroup, keyAttribute string, combinedKeyAttributes ...string) error {
+	g.LdapGroupDN = utils.TrimLower(g.LdapGroupDN)
+
 	o := dao.GetOrmer()
 	created, ID, err := o.ReadOrCreate(g, keyAttribute, combinedKeyAttributes...)
 	if err != nil {
@@ -147,7 +150,7 @@ func GetGroupDNQueryCondition(userGroupList []*models.UserGroup) string {
 			count++
 		}
 	}
-	//No LDAP Group found
+	// No LDAP Group found
 	if count == 0 {
 		return ""
 	}

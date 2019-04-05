@@ -1,4 +1,4 @@
-# Copyright 2016-2017 VMware, Inc. All Rights Reserved.
+# Copyright Project Harbor Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,8 +17,17 @@ Documentation  This resource provides any keywords related to the Harbor private
 
 *** Variables ***
 ${project_create_xpath}  //clr-dg-action-bar//button[contains(.,'New')]
-${self_reg_xpath}  //input[@id="clr-checkbox-selfReg"]
-${test_ldap_xpath}  /html/body/harbor-app/harbor-shell/clr-main-container/div/div/config/div/div/div/button[3]
+${self_reg_xpath}  //input[@id='selfReg']
+${test_ldap_xpath}  //*[@id='authentication']/config-auth/div/button[3]
 ${config_save_button_xpath}  //config//div/button[contains(.,'SAVE')]
+${config_email_save_button_xpath}  //*[@id='config_email_save']
+${config_auth_save_button_xpath}  //*[@id='config_auth_save']
+${config_system_save_button_xpath}  //*[@id='config_system_save']
+${vulnerbility_save_button_xpath}  //*[@id='config-save']
 ${configuration_xpath}  //clr-vertical-nav-group-children/a[contains(.,'Configuration')]
-${system_config_xpath}  //*[@id="config-system"]
+${system_config_xpath}  //*[@id='config-system']
+${garbage_collection_xpath}  //*[@id='config-gc']
+${gc_log_xpath}  //*[@id='gc-log']
+${gc_config_page}  //clr-vertical-nav-group-children/a[contains(.,'Garbage')]
+${gc_now_xpath}  //*[@id='gc']/gc-config//button[contains(.,'GC')]
+${gc_log_details_xpath}  //*[@id='clr-dg-row26']/clr-dg-cell[6]/a

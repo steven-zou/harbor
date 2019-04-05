@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -39,7 +39,11 @@ func NewClient(c *http.Client, modifiers ...modifier.Modifier) *Client {
 		client: c,
 	}
 	if client.client == nil {
-		client.client = &http.Client{}
+		client.client = &http.Client{
+			Transport: &http.Transport{
+				Proxy: http.ProxyFromEnvironment,
+			},
+		}
 	}
 	if len(modifiers) > 0 {
 		client.modifiers = modifiers

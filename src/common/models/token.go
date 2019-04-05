@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,4 +19,10 @@ type Token struct {
 	Token     string `json:"token"`
 	ExpiresIn int    `json:"expires_in"`
 	IssuedAt  string `json:"issued_at"`
+}
+
+// ResourceActions ...
+type ResourceActions struct {
+	Name    string   `json:"name"`
+	Actions []string `json:"actions"`
 }

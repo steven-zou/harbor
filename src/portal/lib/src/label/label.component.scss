@@ -1,0 +1,24 @@
+.label-config {
+  position: relative;
+    div.content-mt {
+      margin-top: -12px;
+    }
+    .rightPos {
+      position: absolute;
+      z-index: 100;
+      right: 35px;
+      height: 24px;
+      .option-right {
+        padding-right: 16px;
+          .refresh-btn {
+            cursor: pointer;
+              :hover {
+              color: #007CBB;
+            }
+          }
+      }    
+  }
+}
+
+
+

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/gorilla/mux"
 	"github.com/goharbor/harbor/src/registryctl/api"
+	"github.com/gorilla/mux"
 )
 
 func newRouter() http.Handler {

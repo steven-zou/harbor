@@ -1,20 +1,21 @@
-FROM photon:1.0
+FROM photon:2.0
 
 MAINTAINER wangyan@vmware.com
 
 # The original script in the docker offical registry image.
-RUN tdnf distro-sync -y \
-    && tdnf erase vim -y \
-    && tdnf install sudo -y >> /dev/null\
+RUN tdnf install sudo -y >> /dev/null\
     && tdnf clean all \
-    && groupadd -r -g 10000 harbor && useradd --no-log-init -r -g 10000 -u 10000 harbor
+    && mkdir /harbor/ \
+    && groupadd -r -g 10000 harbor && useradd --no-log-init -r -g 10000 -u 10000 harbor  
 
-COPY entrypoint.sh /
+COPY  ./make/photon/common/install_cert.sh /harbor 
+
+COPY ./make/photon/registry/entrypoint.sh /
 RUN chmod u+x /entrypoint.sh
 
 RUN mkdir -p /etc/registry
 
-COPY binary/registry /usr/bin
+COPY ./make/photon/registry/binary/registry /usr/bin
 RUN chmod u+x /usr/bin/registry
 
 HEALTHCHECK CMD curl 127.0.0.1:5000/

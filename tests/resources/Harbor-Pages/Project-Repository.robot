@@ -1,4 +1,4 @@
-# Copyright 2016-2017 VMware, Inc. All Rights Reserved.
+# Copyright Project Harbor Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,13 +25,15 @@ View Repo Scan Details
     Wait Until Page Contains  high
     Wait Until Page Contains  medium
     Page Should Contain  CVE
+    Sleep  2
+    Click Element  xpath=${build_history_btn}
+    Sleep  1
+    Page Should Contain Element  xpath=${build_history_data}
 
 View Scan Error Log
     Page Should Contain  View Log
     Click Element  xpath=${view_log_xpath}
     Sleep  1
     Capture Page Screenshot  viewlog.png
-    Wait Until Page Contains  View Scanning Job Log
-    Wait Until Page Contains  ERROR
 
 

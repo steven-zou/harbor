@@ -1,53 +1,68 @@
-// Copyright 2018 The Harbor Authors. All rights reserved.
+// Copyright Project Harbor Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-//Package errs define some system errors with specified types.
+// Package errs define some system errors with specified types.
 package errs
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
 const (
-	//JobStoppedErrorCode is code for jobStoppedError
+	// JobStoppedErrorCode is code for jobStoppedError
 	JobStoppedErrorCode = 10000 + iota
-	//JobCancelledErrorCode is code for jobCancelledError
+	// JobCancelledErrorCode is code for jobCancelledError
 	JobCancelledErrorCode
-	//ReadRequestBodyErrorCode is code for the error of reading http request body error
+	// ReadRequestBodyErrorCode is code for the error of reading http request body error
 	ReadRequestBodyErrorCode
-	//HandleJSONDataErrorCode is code for the error of handling json data error
+	// HandleJSONDataErrorCode is code for the error of handling json data error
 	HandleJSONDataErrorCode
-	//MissingBackendHandlerErrorCode is code for the error of missing backend controller
+	// MissingBackendHandlerErrorCode is code for the error of missing backend controller
 	MissingBackendHandlerErrorCode
-	//LaunchJobErrorCode is code for the error of launching job
+	// LaunchJobErrorCode is code for the error of launching job
 	LaunchJobErrorCode
-	//CheckStatsErrorCode is code for the error of checking stats of worker pool
+	// CheckStatsErrorCode is code for the error of checking stats of worker pool
 	CheckStatsErrorCode
-	//GetJobStatsErrorCode is code for the error of getting stats of enqueued job
+	// GetJobStatsErrorCode is code for the error of getting stats of enqueued job
 	GetJobStatsErrorCode
-	//StopJobErrorCode is code for the error of stopping job
+	// StopJobErrorCode is code for the error of stopping job
 	StopJobErrorCode
-	//CancelJobErrorCode is code for the error of cancelling job
+	// CancelJobErrorCode is code for the error of cancelling job
 	CancelJobErrorCode
-	//RetryJobErrorCode is code for the error of retrying job
+	// RetryJobErrorCode is code for the error of retrying job
 	RetryJobErrorCode
-	//UnknownActionNameErrorCode is code for the case of unknown action name
+	// UnknownActionNameErrorCode is code for the case of unknown action name
 	UnknownActionNameErrorCode
-	//GetJobLogErrorCode is code for the error of getting job log
+	// GetJobLogErrorCode is code for the error of getting job log
 	GetJobLogErrorCode
-	//NoObjectFoundErrorCode is code for the error of no object found
+	// NoObjectFoundErrorCode is code for the error of no object found
 	NoObjectFoundErrorCode
-	//UnAuthorizedErrorCode is code for the error of unauthorized accessing
+	// UnAuthorizedErrorCode is code for the error of unauthorized accessing
 	UnAuthorizedErrorCode
+	// ResourceConflictsErrorCode is code for the error of resource conflicting
+	ResourceConflictsErrorCode
 )
 
-//baseError ...
+// baseError ...
 type baseError struct {
 	Code        uint16 `json:"code"`
 	Err         string `json:"message"`
 	Description string `json:"details,omitempty"`
 }
 
-//Error is implementation of error interface.
+// Error is implementation of error interface.
 func (be baseError) Error() string {
 	if data, err := json.Marshal(be); err == nil {
 		return string(data)
@@ -56,7 +71,7 @@ func (be baseError) Error() string {
 	return "{}"
 }
 
-//New customized errors
+// New customized errors
 func New(code uint16, err string, description string) error {
 	return baseError{
 		Code:        code,
@@ -65,72 +80,72 @@ func New(code uint16, err string, description string) error {
 	}
 }
 
-//ReadRequestBodyError is error wrapper for the error of reading request body.
+// ReadRequestBodyError is error wrapper for the error of reading request body.
 func ReadRequestBodyError(err error) error {
 	return New(ReadRequestBodyErrorCode, "Read request body failed with error", err.Error())
 }
 
-//HandleJSONDataError is error wrapper for the error of handling json data.
+// HandleJSONDataError is error wrapper for the error of handling json data.
 func HandleJSONDataError(err error) error {
 	return New(HandleJSONDataErrorCode, "Handle json data failed with error", err.Error())
 }
 
-//MissingBackendHandlerError is error wrapper for the error of missing backend controller.
+// MissingBackendHandlerError is error wrapper for the error of missing backend controller.
 func MissingBackendHandlerError(err error) error {
 	return New(MissingBackendHandlerErrorCode, "Missing backend controller to handle the requests", err.Error())
 }
 
-//LaunchJobError is error wrapper for the error of launching job failed.
+// LaunchJobError is error wrapper for the error of launching job failed.
 func LaunchJobError(err error) error {
 	return New(LaunchJobErrorCode, "Launch job failed with error", err.Error())
 }
 
-//CheckStatsError is error wrapper for the error of checking stats failed
+// CheckStatsError is error wrapper for the error of checking stats failed
 func CheckStatsError(err error) error {
 	return New(CheckStatsErrorCode, "Check stats of server failed with error", err.Error())
 }
 
-//GetJobStatsError is error wrapper for the error of getting job stats
+// GetJobStatsError is error wrapper for the error of getting job stats
 func GetJobStatsError(err error) error {
 	return New(GetJobStatsErrorCode, "Get job stats failed with error", err.Error())
 }
 
-//StopJobError is error for the case of stopping job failed
+// StopJobError is error for the case of stopping job failed
 func StopJobError(err error) error {
 	return New(StopJobErrorCode, "Stop job failed with error", err.Error())
 }
 
-//CancelJobError is error for the case of cancelling job failed
+// CancelJobError is error for the case of cancelling job failed
 func CancelJobError(err error) error {
 	return New(CancelJobErrorCode, "Cancel job failed with error", err.Error())
 }
 
-//RetryJobError is error for the case of retrying job failed
+// RetryJobError is error for the case of retrying job failed
 func RetryJobError(err error) error {
 	return New(RetryJobErrorCode, "Retry job failed with error", err.Error())
 }
 
-//UnknownActionNameError is error for the case of getting unknown job action
+// UnknownActionNameError is error for the case of getting unknown job action
 func UnknownActionNameError(err error) error {
 	return New(UnknownActionNameErrorCode, "Unknown job action name", err.Error())
 }
 
-//GetJobLogError is error for the case of getting job log failed
+// GetJobLogError is error for the case of getting job log failed
 func GetJobLogError(err error) error {
 	return New(GetJobLogErrorCode, "Failed to get the job log", err.Error())
 }
 
-//UnauthorizedError is error for the case of unauthorized accessing
+// UnauthorizedError is error for the case of unauthorized accessing
 func UnauthorizedError(err error) error {
 	return New(UnAuthorizedErrorCode, "Unauthorized", err.Error())
 }
 
-//jobStoppedError is designed for the case of stopping job.
+// jobStoppedError is designed for the case of stopping job.
 type jobStoppedError struct {
 	baseError
 }
 
-//JobStoppedError is error wrapper for the case of stopping job.
+// JobStoppedError is error wrapper for the case of stopping job.
 func JobStoppedError() error {
 	return jobStoppedError{
 		baseError{
@@ -140,12 +155,12 @@ func JobStoppedError() error {
 	}
 }
 
-//jobCancelledError is designed for the case of cancelling job.
+// jobCancelledError is designed for the case of cancelling job.
 type jobCancelledError struct {
 	baseError
 }
 
-//JobCancelledError is error wrapper for the case of cancelling job.
+// JobCancelledError is error wrapper for the case of cancelling job.
 func JobCancelledError() error {
 	return jobCancelledError{
 		baseError{
@@ -155,12 +170,12 @@ func JobCancelledError() error {
 	}
 }
 
-//objectNotFound is designed for the case of no object found
+// objectNotFound is designed for the case of no object found
 type objectNotFoundError struct {
 	baseError
 }
 
-//NoObjectFoundError is error wrapper for the case of no object found
+// NoObjectFoundError is error wrapper for the case of no object found
 func NoObjectFoundError(object string) error {
 	return objectNotFoundError{
 		baseError{
@@ -171,20 +186,42 @@ func NoObjectFoundError(object string) error {
 	}
 }
 
-//IsJobStoppedError return true if the error is jobStoppedError
+// conflictError is designed for the case of resource conflicting
+type conflictError struct {
+	baseError
+}
+
+// ConflictError is error for the case of resource conflicting
+func ConflictError(object string) error {
+	return conflictError{
+		baseError{
+			Code:        ResourceConflictsErrorCode,
+			Err:         "conflict",
+			Description: fmt.Sprintf("the submitting resource is conflicted with existing one %s", object),
+		},
+	}
+}
+
+// IsJobStoppedError return true if the error is jobStoppedError
 func IsJobStoppedError(err error) bool {
 	_, ok := err.(jobStoppedError)
 	return ok
 }
 
-//IsJobCancelledError return true if the error is jobCancelledError
+// IsJobCancelledError return true if the error is jobCancelledError
 func IsJobCancelledError(err error) bool {
 	_, ok := err.(jobCancelledError)
 	return ok
 }
 
-//IsObjectNotFoundError return true if the error is objectNotFoundError
+// IsObjectNotFoundError return true if the error is objectNotFoundError
 func IsObjectNotFoundError(err error) bool {
 	_, ok := err.(objectNotFoundError)
+	return ok
+}
+
+// IsConflictError returns true if the error is conflictError
+func IsConflictError(err error) bool {
+	_, ok := err.(conflictError)
 	return ok
 }

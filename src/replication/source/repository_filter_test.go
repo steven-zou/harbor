@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@ package source
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/goharbor/harbor/src/replication"
 	"github.com/goharbor/harbor/src/replication/models"
 	"github.com/goharbor/harbor/src/replication/registry"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInitOfRepositoryFilter(t *testing.T) {
@@ -28,16 +28,16 @@ func TestInitOfRepositoryFilter(t *testing.T) {
 	assert.Nil(t, filter.Init())
 }
 
-func TestGetConvertorOfRepositoryFilter(t *testing.T) {
+func TestGetConverterOfRepositoryFilter(t *testing.T) {
 	filter := NewRepositoryFilter("", &registry.HarborAdaptor{})
-	assert.NotNil(t, filter.GetConvertor())
+	assert.NotNil(t, filter.GetConverter())
 }
 
 func TestDoFilterOfRepositoryFilter(t *testing.T) {
 	// invalid filter item type
 	filter := NewRepositoryFilter("", &registry.HarborAdaptor{})
 	items := filter.DoFilter([]models.FilterItem{
-		models.FilterItem{
+		{
 			Kind: "invalid_type",
 		},
 	})
@@ -46,7 +46,7 @@ func TestDoFilterOfRepositoryFilter(t *testing.T) {
 	// empty pattern
 	filter = NewRepositoryFilter("", &registry.HarborAdaptor{})
 	items = filter.DoFilter([]models.FilterItem{
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindRepository,
 			Value: "library/hello-world",
 		},
@@ -56,7 +56,7 @@ func TestDoFilterOfRepositoryFilter(t *testing.T) {
 	// non-empty pattern
 	filter = NewRepositoryFilter("*", &registry.HarborAdaptor{})
 	items = filter.DoFilter([]models.FilterItem{
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindTag,
 			Value: "library/hello-world",
 		},
@@ -66,7 +66,7 @@ func TestDoFilterOfRepositoryFilter(t *testing.T) {
 	// non-empty pattern
 	filter = NewRepositoryFilter("*", &registry.HarborAdaptor{})
 	items = filter.DoFilter([]models.FilterItem{
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindTag,
 			Value: "library/hello-world:latest",
 		},

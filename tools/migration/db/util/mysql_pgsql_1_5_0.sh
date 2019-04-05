@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2017 VMware, Inc. All Rights Reserved.
+# Copyright Project Harbor Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -73,8 +73,11 @@ EOF
         # launch_pgsql $PGSQL_USR
         psql -U $1 -f /harbor-migration/db/schema/notaryserver_create_tables.pgsql
         psql -U $1 -f /harbor-migration/db/schema/notaryserver_insert_data.pgsql
+        psql -U $1 -f /harbor-migration/db/schema/notaryserver_alter_tables.pgsql
+
         psql -U $1 -f /harbor-migration/db/schema/notarysigner_create_tables.pgsql
         psql -U $1 -f /harbor-migration/db/schema/notarysigner_insert_data.pgsql
+        psql -U $1 -f /harbor-migration/db/schema/notarysigner_alter_tables.pgsql
 
         stop_mysql root
         stop_pgsql $1 

@@ -1,4 +1,4 @@
-# Copyright 2016-2017 VMware, Inc. All Rights Reserved.
+# Copyright Project Harbor Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,9 +25,9 @@ Change Password
     Click Element  xpath=/html/body/harbor-app/harbor-shell/clr-main-container/navigator/clr-header/div[3]/clr-dropdown[2]/button/span
     Click Element  xpath=//clr-main-container//clr-dropdown//a[2]
     Sleep  2
-    Input Text  xpath=//*[@id="oldPassword"]  ${cur_pw}
-    Input Text  xpath=//*[@id="newPassword"]  ${new_pw}
-    Input Text  xpath=//*[@id="reNewPassword"]  ${new_pw}
+    Input Text  xpath=//*[@id='oldPassword']  ${cur_pw}
+    Input Text  xpath=//*[@id='newPassword']  ${new_pw}
+    Input Text  xpath=//*[@id='reNewPassword']  ${new_pw}
     Sleep  1
     Click Element  xpath=//password-setting/clr-modal//button[2]
     Sleep  2
@@ -39,7 +39,7 @@ Update User Comment
     Click Element  xpath=/html/body/harbor-app/harbor-shell/clr-main-container/navigator/clr-header/div[3]/clr-dropdown[2]/button/span
     Click Element  xpath=//clr-main-container//clr-dropdown//a[1]
     Sleep  2
-    Input Text  xpath=//*[@id="account_settings_comments"]  ${new_comment}
+    Input Text  xpath=//*[@id='account_settings_comments']  ${new_comment}
     Sleep  1
     Click Element  xpath=//account-settings-modal/clr-modal//button[2]
     Sleep  2
@@ -54,4 +54,4 @@ Logout Harbor
     Sleep  1
     Capture Page Screenshot  Logout.png
     Sleep  2
-    Wait Until Keyword Succeeds  5x  1  Page Should Contain Element  xpath=//sign-in//form//*[@class="title"]
+    Wait Until Keyword Succeeds  5x  1  Page Should Contain Element  xpath=//sign-in//form//*[@class='title']

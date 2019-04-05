@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,14 +27,14 @@ import (
 // RepositoryFilter implement Filter interface to filter repository
 type RepositoryFilter struct {
 	pattern   string
-	convertor Convertor
+	converter Converter
 }
 
 // NewRepositoryFilter returns an instance of RepositoryFilter
 func NewRepositoryFilter(pattern string, registry registry.Adaptor) *RepositoryFilter {
 	return &RepositoryFilter{
 		pattern:   pattern,
-		convertor: NewRepositoryConvertor(registry),
+		converter: NewRepositoryConverter(registry),
 	}
 }
 
@@ -43,9 +43,9 @@ func (r *RepositoryFilter) Init() error {
 	return nil
 }
 
-// GetConvertor ...
-func (r *RepositoryFilter) GetConvertor() Convertor {
-	return r.convertor
+// GetConverter ...
+func (r *RepositoryFilter) GetConverter() Converter {
+	return r.converter
 }
 
 // DoFilter filters repository and image(according to the repository part) and drops any other resource types

@@ -1,4 +1,16 @@
-// Copyright 2018 The Harbor Authors. All rights reserved.
+// Copyright Project Harbor Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package api
 
 import (
@@ -377,7 +389,7 @@ func getReq(url string) ([]byte, error) {
 }
 
 func exportUISecret(secret string) {
-	os.Setenv("UI_SECRET", secret)
+	os.Setenv("CORE_SECRET", secret)
 }
 
 type fakeController struct{}
@@ -424,7 +436,7 @@ func (fc *fakeController) CancelJob(jobID string) error {
 
 func (fc *fakeController) CheckStatus() (models.JobPoolStats, error) {
 	return models.JobPoolStats{
-		Pools: []*models.JobPoolStatsData{&models.JobPoolStatsData{
+		Pools: []*models.JobPoolStatsData{{
 			WorkerPoolID: "fake_pool_ID",
 			Status:       "running",
 			StartedAt:    time.Now().Unix(),

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,5 +36,8 @@ func init() {
 		new(Label),
 		new(ResourceLabel),
 		new(UserGroup),
-		new(AdminJob))
+		new(AdminJob),
+		new(JobLog),
+		new(Robot),
+		new(OIDCUser))
 }

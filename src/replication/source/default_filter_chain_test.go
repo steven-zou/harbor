@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@ package source
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/goharbor/harbor/src/replication"
 	"github.com/goharbor/harbor/src/replication/models"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBuild(t *testing.T) {
@@ -37,15 +37,15 @@ func TestFilters(t *testing.T) {
 func TestDoFilter(t *testing.T) {
 	projectFilter := NewPatternFilter(replication.FilterItemKindProject, "library*")
 	repositoryFilter := NewPatternFilter(replication.FilterItemKindRepository,
-		"library/ubuntu*", &fakeRepositoryConvertor{})
+		"library/ubuntu*", &fakeRepositoryConverter{})
 	filters := []Filter{projectFilter, repositoryFilter}
 
 	items := []models.FilterItem{
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindProject,
 			Value: "library",
 		},
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindProject,
 			Value: "test",
 		},
@@ -53,7 +53,7 @@ func TestDoFilter(t *testing.T) {
 	chain := NewDefaultFilterChain(filters)
 	items = chain.DoFilter(items)
 	assert.EqualValues(t, []models.FilterItem{
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindRepository,
 			Value: "library/ubuntu",
 		},
@@ -61,9 +61,9 @@ func TestDoFilter(t *testing.T) {
 
 }
 
-type fakeRepositoryConvertor struct{}
+type fakeRepositoryConverter struct{}
 
-func (f *fakeRepositoryConvertor) Convert(items []models.FilterItem) []models.FilterItem {
+func (f *fakeRepositoryConverter) Convert(items []models.FilterItem) []models.FilterItem {
 	result := []models.FilterItem{}
 	for _, item := range items {
 		result = append(result, models.FilterItem{

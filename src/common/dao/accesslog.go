@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ func GetTotalOfAccessLogs(query *models.LogQueryParam) (int64, error) {
 	return logQueryConditions(query).Count()
 }
 
-//GetAccessLogs gets access logs according to different conditions
+// GetAccessLogs gets access logs according to different conditions
 func GetAccessLogs(query *models.LogQueryParam) ([]models.AccessLog, error) {
 	qs := logQueryConditions(query).OrderBy("-op_time")
 

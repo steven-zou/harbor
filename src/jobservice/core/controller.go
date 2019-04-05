@@ -1,19 +1,30 @@
-// Copyright 2018 The Harbor Authors. All rights reserved.
+// Copyright Project Harbor Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package core
 
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 
-	"github.com/robfig/cron"
-	"github.com/goharbor/harbor/src/jobservice/config"
-	"github.com/goharbor/harbor/src/jobservice/errs"
+	"github.com/goharbor/harbor/src/jobservice/logger"
+
 	"github.com/goharbor/harbor/src/jobservice/job"
 	"github.com/goharbor/harbor/src/jobservice/models"
 	"github.com/goharbor/harbor/src/jobservice/pool"
 	"github.com/goharbor/harbor/src/jobservice/utils"
+	"github.com/robfig/cron"
 )
 
 const (
@@ -21,38 +32,38 @@ const (
 	hookDeactivated = "error"
 )
 
-//Controller implement the core interface and provides related job handle methods.
-//Controller will coordinate the lower components to complete the process as a commander role.
+// Controller implement the core interface and provides related job handle methods.
+// Controller will coordinate the lower components to complete the process as a commander role.
 type Controller struct {
-	//Refer the backend pool
+	// Refer the backend pool
 	backendPool pool.Interface
 }
 
-//NewController is constructor of Controller.
+// NewController is constructor of Controller.
 func NewController(backendPool pool.Interface) *Controller {
 	return &Controller{
 		backendPool: backendPool,
 	}
 }
 
-//LaunchJob is implementation of same method in core interface.
+// LaunchJob is implementation of same method in core interface.
 func (c *Controller) LaunchJob(req models.JobRequest) (models.JobStats, error) {
 	if err := validJobReq(req); err != nil {
 		return models.JobStats{}, err
 	}
 
-	//Validate job name
+	// Validate job name
 	jobType, isKnownJob := c.backendPool.IsKnownJob(req.Job.Name)
 	if !isKnownJob {
 		return models.JobStats{}, fmt.Errorf("job with name '%s' is unknown", req.Job.Name)
 	}
 
-	//Validate parameters
+	// Validate parameters
 	if err := c.backendPool.ValidateJobParameters(jobType, req.Job.Parameters); err != nil {
 		return models.JobStats{}, err
 	}
 
-	//Enqueue job regarding of the kind
+	// Enqueue job regarding of the kind
 	var (
 		res models.JobStats
 		err error
@@ -73,7 +84,7 @@ func (c *Controller) LaunchJob(req models.JobRequest) (models.JobStats, error) {
 		res, err = c.backendPool.Enqueue(req.Job.Name, req.Job.Parameters, req.Job.Metadata.IsUnique)
 	}
 
-	//Register status hook?
+	// Register status hook?
 	if err == nil {
 		if !utils.IsEmptyStr(req.Job.StatusHook) {
 			if err := c.backendPool.RegisterHook(res.Stats.JobID, req.Job.StatusHook); err != nil {
@@ -87,7 +98,7 @@ func (c *Controller) LaunchJob(req models.JobRequest) (models.JobStats, error) {
 	return res, err
 }
 
-//GetJob is implementation of same method in core interface.
+// GetJob is implementation of same method in core interface.
 func (c *Controller) GetJob(jobID string) (models.JobStats, error) {
 	if utils.IsEmptyStr(jobID) {
 		return models.JobStats{}, errors.New("empty job ID")
@@ -96,7 +107,7 @@ func (c *Controller) GetJob(jobID string) (models.JobStats, error) {
 	return c.backendPool.GetJobStats(jobID)
 }
 
-//StopJob is implementation of same method in core interface.
+// StopJob is implementation of same method in core interface.
 func (c *Controller) StopJob(jobID string) error {
 	if utils.IsEmptyStr(jobID) {
 		return errors.New("empty job ID")
@@ -105,7 +116,7 @@ func (c *Controller) StopJob(jobID string) error {
 	return c.backendPool.StopJob(jobID)
 }
 
-//CancelJob is implementation of same method in core interface.
+// CancelJob is implementation of same method in core interface.
 func (c *Controller) CancelJob(jobID string) error {
 	if utils.IsEmptyStr(jobID) {
 		return errors.New("empty job ID")
@@ -114,7 +125,7 @@ func (c *Controller) CancelJob(jobID string) error {
 	return c.backendPool.CancelJob(jobID)
 }
 
-//RetryJob is implementation of same method in core interface.
+// RetryJob is implementation of same method in core interface.
 func (c *Controller) RetryJob(jobID string) error {
 	if utils.IsEmptyStr(jobID) {
 		return errors.New("empty job ID")
@@ -123,18 +134,13 @@ func (c *Controller) RetryJob(jobID string) error {
 	return c.backendPool.RetryJob(jobID)
 }
 
-//GetJobLogData is used to return the log text data for the specified job if exists
+// GetJobLogData is used to return the log text data for the specified job if exists
 func (c *Controller) GetJobLogData(jobID string) ([]byte, error) {
 	if utils.IsEmptyStr(jobID) {
 		return nil, errors.New("empty job ID")
 	}
 
-	logPath := fmt.Sprintf("%s/%s.log", config.GetLogBasePath(), jobID)
-	if !utils.FileExists(logPath) {
-		return nil, errs.NoObjectFoundError(fmt.Sprintf("%s.log", jobID))
-	}
-
-	logData, err := ioutil.ReadFile(logPath)
+	logData, err := logger.Retrieve(jobID)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +148,7 @@ func (c *Controller) GetJobLogData(jobID string) ([]byte, error) {
 	return logData, nil
 }
 
-//CheckStatus is implementation of same method in core interface.
+// CheckStatus is implementation of same method in core interface.
 func (c *Controller) CheckStatus() (models.JobPoolStats, error) {
 	return c.backendPool.Stats()
 }

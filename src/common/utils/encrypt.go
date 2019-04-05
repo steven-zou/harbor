@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@ func ReversibleDecrypt(str, key string) (string, error) {
 		str = str[len(EncryptHeaderV1):]
 		return decryptAES(str, key)
 	}
-	//fallback to base64
+	// fallback to base64
 	return decodeB64(str)
 }
 

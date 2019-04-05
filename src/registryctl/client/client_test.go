@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/goharbor/harbor/src/common/utils/test"
+	"github.com/stretchr/testify/assert"
 )
 
 var c Client
@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 
 	server, err := test.NewRegistryCtl(nil)
 	if err != nil {
-		fmt.Printf("failed to create regsitry: %v", err)
+		fmt.Printf("failed to create registry: %v", err)
 		os.Exit(1)
 	}
 

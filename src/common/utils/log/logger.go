@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,11 +23,9 @@ import (
 	"time"
 )
 
-var logger = New(os.Stdout, NewTextFormatter(), WarningLevel)
+var logger = New(os.Stdout, NewTextFormatter(), WarningLevel, 4)
 
 func init() {
-	logger.callDepth = 4
-
 	lvl := os.Getenv("LOG_LEVEL")
 	if len(lvl) == 0 {
 		logger.SetLevel(InfoLevel)
@@ -41,7 +39,6 @@ func init() {
 	}
 
 	logger.SetLevel(level)
-
 }
 
 // Logger provides a struct with fields that describe the details of logger.
@@ -55,21 +52,31 @@ type Logger struct {
 }
 
 // New returns a customized Logger
-func New(out io.Writer, fmtter Formatter, lvl Level) *Logger {
+func New(out io.Writer, fmtter Formatter, lvl Level, options ...interface{}) *Logger {
+	// Default set to be 3
+	depth := 3
+	// If passed in as option, then reset depth
+	// Use index 0
+	if len(options) > 0 {
+		d, ok := options[0].(int)
+		if ok && d > 0 {
+			depth = d
+		}
+	}
 	return &Logger{
 		out:       out,
 		fmtter:    fmtter,
 		lvl:       lvl,
-		callDepth: 3,
+		callDepth: depth,
 	}
 }
 
-//DefaultLogger returns the default logger within the pkg, i.e. the one used in log.Infof....
+// DefaultLogger returns the default logger within the pkg, i.e. the one used in log.Infof....
 func DefaultLogger() *Logger {
 	return logger
 }
 
-//SetOutput sets the output of Logger l
+// SetOutput sets the output of Logger l
 func (l *Logger) SetOutput(out io.Writer) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -77,7 +84,7 @@ func (l *Logger) SetOutput(out io.Writer) {
 	l.out = out
 }
 
-//SetFormatter sets the formatter of Logger l
+// SetFormatter sets the formatter of Logger l
 func (l *Logger) SetFormatter(fmtter Formatter) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -85,7 +92,7 @@ func (l *Logger) SetFormatter(fmtter Formatter) {
 	l.fmtter = fmtter
 }
 
-//SetLevel sets the level of Logger l
+// SetLevel sets the level of Logger l
 func (l *Logger) SetLevel(lvl Level) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -93,17 +100,17 @@ func (l *Logger) SetLevel(lvl Level) {
 	l.lvl = lvl
 }
 
-//SetOutput sets the output of default Logger
+// SetOutput sets the output of default Logger
 func SetOutput(out io.Writer) {
 	logger.SetOutput(out)
 }
 
-//SetFormatter sets the formatter of default Logger
+// SetFormatter sets the formatter of default Logger
 func SetFormatter(fmtter Formatter) {
 	logger.SetFormatter(fmtter)
 }
 
-//SetLevel sets the level of default Logger
+// SetLevel sets the level of default Logger
 func SetLevel(lvl Level) {
 	logger.SetLevel(lvl)
 }

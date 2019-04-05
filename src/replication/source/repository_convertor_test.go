@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,37 +17,37 @@ package source
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/goharbor/harbor/src/replication"
 	"github.com/goharbor/harbor/src/replication/models"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRepositoryConvert(t *testing.T) {
 	items := []models.FilterItem{
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindProject,
 			Value: "library",
 		},
-		models.FilterItem{
+		{
 			Kind: replication.FilterItemKindRepository,
 		},
 	}
 	expected := []models.FilterItem{
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindRepository,
 			Value: "library/ubuntu",
 		},
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindRepository,
 			Value: "library/centos",
 		},
-		models.FilterItem{
+		{
 			Kind: replication.FilterItemKindRepository,
 		},
 	}
 
-	convertor := NewRepositoryConvertor(&fakeRegistryAdaptor{})
-	assert.EqualValues(t, expected, convertor.Convert(items))
+	converter := NewRepositoryConverter(&fakeRegistryAdaptor{})
+	assert.EqualValues(t, expected, converter.Convert(items))
 }
 
 type fakeRegistryAdaptor struct{}
@@ -66,10 +66,10 @@ func (f *fakeRegistryAdaptor) GetNamespace(name string) models.Namespace {
 
 func (f *fakeRegistryAdaptor) GetRepositories(namespace string) []models.Repository {
 	return []models.Repository{
-		models.Repository{
+		{
 			Name: "library/ubuntu",
 		},
-		models.Repository{
+		{
 			Name: "library/centos",
 		},
 	}
@@ -81,10 +81,10 @@ func (f *fakeRegistryAdaptor) GetRepository(name string, namespace string) model
 
 func (f *fakeRegistryAdaptor) GetTags(repositoryName string, namespace string) []models.Tag {
 	return []models.Tag{
-		models.Tag{
+		{
 			Name: "14.04",
 		},
-		models.Tag{
+		{
 			Name: "16.04",
 		},
 	}

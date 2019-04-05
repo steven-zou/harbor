@@ -1,6 +1,18 @@
-// Copyright 2018 The Harbor Authors. All rights reserved.
+// Copyright Project Harbor Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-//Package config provides functions to handle the configurations of job service.
+// Package config provides functions to handle the configurations of job service.
 package config
 
 import (
@@ -16,95 +28,103 @@ import (
 )
 
 const (
-	jobServiceProtocol            = "JOB_SERVICE_PROTOCOL"
-	jobServicePort                = "JOB_SERVICE_PORT"
-	jobServiceHTTPCert            = "JOB_SERVICE_HTTPS_CERT"
-	jobServiceHTTPKey             = "JOB_SERVICE_HTTPS_KEY"
-	jobServiceWorkerPoolBackend   = "JOB_SERVICE_POOL_BACKEND"
-	jobServiceWorkers             = "JOB_SERVICE_POOL_WORKERS"
-	jobServiceRedisURL            = "JOB_SERVICE_POOL_REDIS_URL"
-	jobServiceRedisNamespace      = "JOB_SERVICE_POOL_REDIS_NAMESPACE"
-	jobServiceLoggerBasePath      = "JOB_SERVICE_LOGGER_BASE_PATH"
-	jobServiceLoggerLevel         = "JOB_SERVICE_LOGGER_LEVEL"
-	jobServiceLoggerArchivePeriod = "JOB_SERVICE_LOGGER_ARCHIVE_PERIOD"
-	jobServiceAdminServerEndpoint = "ADMINSERVER_URL"
-	jobServiceAuthSecret          = "JOBSERVICE_SECRET"
+	jobServiceProtocol           = "JOB_SERVICE_PROTOCOL"
+	jobServicePort               = "JOB_SERVICE_PORT"
+	jobServiceHTTPCert           = "JOB_SERVICE_HTTPS_CERT"
+	jobServiceHTTPKey            = "JOB_SERVICE_HTTPS_KEY"
+	jobServiceWorkerPoolBackend  = "JOB_SERVICE_POOL_BACKEND"
+	jobServiceWorkers            = "JOB_SERVICE_POOL_WORKERS"
+	jobServiceRedisURL           = "JOB_SERVICE_POOL_REDIS_URL"
+	jobServiceRedisNamespace     = "JOB_SERVICE_POOL_REDIS_NAMESPACE"
+	jobServiceCoreServerEndpoint = "CORE_URL"
+	jobServiceAuthSecret         = "JOBSERVICE_SECRET"
 
-	//JobServiceProtocolHTTPS points to the 'https' protocol
+	// JobServiceProtocolHTTPS points to the 'https' protocol
 	JobServiceProtocolHTTPS = "https"
-	//JobServiceProtocolHTTP points to the 'http' protocol
+	// JobServiceProtocolHTTP points to the 'http' protocol
 	JobServiceProtocolHTTP = "http"
 
-	//JobServicePoolBackendRedis represents redis backend
+	// JobServicePoolBackendRedis represents redis backend
 	JobServicePoolBackendRedis = "redis"
 
-	//secret of UI
-	uiAuthSecret = "UI_SECRET"
+	// secret of UI
+	uiAuthSecret = "CORE_SECRET"
 
-	//redis protocol schema
+	// redis protocol schema
 	redisSchema = "redis://"
 )
 
-//DefaultConfig is the default configuration reference
+// DefaultConfig is the default configuration reference
 var DefaultConfig = &Configuration{}
 
-//Configuration loads and keeps the related configuration items of job service.
+// Configuration loads and keeps the related configuration items of job service.
 type Configuration struct {
-	//Protocol server listening on: https/http
+	// Protocol server listening on: https/http
 	Protocol string `yaml:"protocol"`
 
-	//Server listening port
+	// Server listening port
 	Port uint `yaml:"port"`
 
-	AdminServer string `yaml:"admin_server"`
-
-	//Additional config when using https
+	// Additional config when using https
 	HTTPSConfig *HTTPSConfig `yaml:"https_config,omitempty"`
 
-	//Configurations of worker pool
+	// Configurations of worker pool
 	PoolConfig *PoolConfig `yaml:"worker_pool,omitempty"`
 
-	//Logger configurations
-	LoggerConfig *LoggerConfig `yaml:"logger,omitempty"`
+	// Job logger configurations
+	JobLoggerConfigs []*LoggerConfig `yaml:"job_loggers,omitempty"`
+
+	// Logger configurations
+	LoggerConfigs []*LoggerConfig `yaml:"loggers,omitempty"`
 }
 
-//HTTPSConfig keeps additional configurations when using https protocol
+// HTTPSConfig keeps additional configurations when using https protocol
 type HTTPSConfig struct {
 	Cert string `yaml:"cert"`
 	Key  string `yaml:"key"`
 }
 
-//RedisPoolConfig keeps redis pool info.
+// RedisPoolConfig keeps redis pool info.
 type RedisPoolConfig struct {
 	RedisURL  string `yaml:"redis_url"`
 	Namespace string `yaml:"namespace"`
 }
 
-//PoolConfig keeps worker pool configurations.
+// PoolConfig keeps worker pool configurations.
 type PoolConfig struct {
-	//Worker concurrency
+	// Worker concurrency
 	WorkerCount  uint             `yaml:"workers"`
 	Backend      string           `yaml:"backend"`
 	RedisPoolCfg *RedisPoolConfig `yaml:"redis_pool,omitempty"`
 }
 
-//LoggerConfig keeps logger configurations.
-type LoggerConfig struct {
-	BasePath      string `yaml:"path"`
-	LogLevel      string `yaml:"level"`
-	ArchivePeriod uint   `yaml:"archive_period"`
+// CustomizedSettings keeps the customized settings of logger
+type CustomizedSettings map[string]interface{}
+
+// LogSweeperConfig keeps settings of log sweeper
+type LogSweeperConfig struct {
+	Duration int                `yaml:"duration"`
+	Settings CustomizedSettings `yaml:"settings"`
 }
 
-//Load the configuration options from the specified yaml file.
-//If the yaml file is specified and existing, load configurations from yaml file first;
-//If detecting env variables is specified, load configurations from env variables;
-//Please pay attentions, the detected env variable will override the same configuration item loading from file.
+// LoggerConfig keeps logger basic configurations.
+type LoggerConfig struct {
+	Name     string             `yaml:"name"`
+	Level    string             `yaml:"level"`
+	Settings CustomizedSettings `yaml:"settings"`
+	Sweeper  *LogSweeperConfig  `yaml:"sweeper"`
+}
+
+// Load the configuration options from the specified yaml file.
+// If the yaml file is specified and existing, load configurations from yaml file first;
+// If detecting env variables is specified, load configurations from env variables;
+// Please pay attentions, the detected env variable will override the same configuration item loading from file.
 //
-//yamlFilePath	string: The path config yaml file
-//readEnv       bool  : Whether detect the environment variables or not
+// yamlFilePath	string: The path config yaml file
+// readEnv       bool  : Whether detect the environment variables or not
 func (c *Configuration) Load(yamlFilePath string, detectEnv bool) error {
 	if !utils.IsEmptyStr(yamlFilePath) {
-		//Try to load from file first
+		// Try to load from file first
 		data, err := ioutil.ReadFile(yamlFilePath)
 		if err != nil {
 			return err
@@ -115,11 +135,11 @@ func (c *Configuration) Load(yamlFilePath string, detectEnv bool) error {
 	}
 
 	if detectEnv {
-		//Load from env variables
+		// Load from env variables
 		c.loadEnvs()
 	}
 
-	//translate redis url if needed
+	// translate redis url if needed
 	if c.PoolConfig != nil && c.PoolConfig.RedisPoolCfg != nil {
 		redisAddress := c.PoolConfig.RedisPoolCfg.RedisURL
 		if !utils.IsEmptyStr(redisAddress) {
@@ -135,53 +155,21 @@ func (c *Configuration) Load(yamlFilePath string, detectEnv bool) error {
 		}
 	}
 
-	//Validate settings
+	// Validate settings
 	return c.validate()
 }
 
-//GetLogBasePath returns the log base path config
-func GetLogBasePath() string {
-	if DefaultConfig.LoggerConfig != nil {
-		return DefaultConfig.LoggerConfig.BasePath
-	}
-
-	return ""
-}
-
-//GetLogLevel returns the log level
-func GetLogLevel() string {
-	if DefaultConfig.LoggerConfig != nil {
-		return DefaultConfig.LoggerConfig.LogLevel
-	}
-
-	return ""
-}
-
-//GetLogArchivePeriod returns the archive period
-func GetLogArchivePeriod() uint {
-	if DefaultConfig.LoggerConfig != nil {
-		return DefaultConfig.LoggerConfig.ArchivePeriod
-	}
-
-	return 1 //return default
-}
-
-//GetAuthSecret get the auth secret from the env
+// GetAuthSecret get the auth secret from the env
 func GetAuthSecret() string {
 	return utils.ReadEnv(jobServiceAuthSecret)
 }
 
-//GetUIAuthSecret get the auth secret of UI side
+// GetUIAuthSecret get the auth secret of UI side
 func GetUIAuthSecret() string {
 	return utils.ReadEnv(uiAuthSecret)
 }
 
-//GetAdminServerEndpoint return the admin server endpoint
-func GetAdminServerEndpoint() string {
-	return DefaultConfig.AdminServer
-}
-
-//Load env variables
+// Load env variables
 func (c *Configuration) loadEnvs() {
 	prot := utils.ReadEnv(jobServiceProtocol)
 	if !utils.IsEmptyStr(prot) {
@@ -195,7 +183,7 @@ func (c *Configuration) loadEnvs() {
 		}
 	}
 
-	//Only when protocol is https
+	// Only when protocol is https
 	if c.Protocol == JobServiceProtocolHTTPS {
 		cert := utils.ReadEnv(jobServiceHTTPCert)
 		if !utils.IsEmptyStr(cert) {
@@ -256,39 +244,9 @@ func (c *Configuration) loadEnvs() {
 		}
 	}
 
-	//logger
-	loggerPath := utils.ReadEnv(jobServiceLoggerBasePath)
-	if !utils.IsEmptyStr(loggerPath) {
-		if c.LoggerConfig == nil {
-			c.LoggerConfig = &LoggerConfig{}
-		}
-		c.LoggerConfig.BasePath = loggerPath
-	}
-	loggerLevel := utils.ReadEnv(jobServiceLoggerLevel)
-	if !utils.IsEmptyStr(loggerLevel) {
-		if c.LoggerConfig == nil {
-			c.LoggerConfig = &LoggerConfig{}
-		}
-		c.LoggerConfig.LogLevel = loggerLevel
-	}
-	archivePeriod := utils.ReadEnv(jobServiceLoggerArchivePeriod)
-	if !utils.IsEmptyStr(archivePeriod) {
-		if period, err := strconv.Atoi(archivePeriod); err == nil {
-			if c.LoggerConfig == nil {
-				c.LoggerConfig = &LoggerConfig{}
-			}
-			c.LoggerConfig.ArchivePeriod = uint(period)
-		}
-	}
-
-	//admin server
-	if adminServer := utils.ReadEnv(jobServiceAdminServerEndpoint); !utils.IsEmptyStr(adminServer) {
-		c.AdminServer = adminServer
-	}
-
 }
 
-//Check if the configurations are valid settings.
+// Check if the configurations are valid settings.
 func (c *Configuration) validate() error {
 	if c.Protocol != JobServiceProtocolHTTPS &&
 		c.Protocol != JobServiceProtocolHTTP {
@@ -323,7 +281,7 @@ func (c *Configuration) validate() error {
 		return fmt.Errorf("worker pool backend %s does not support", c.PoolConfig.Backend)
 	}
 
-	//When backend is redis
+	// When backend is redis
 	if c.PoolConfig.Backend == JobServicePoolBackendRedis {
 		if c.PoolConfig.RedisPoolCfg == nil {
 			return fmt.Errorf("redis pool must be configured when backend is set to '%s'", c.PoolConfig.Backend)
@@ -345,26 +303,15 @@ func (c *Configuration) validate() error {
 		}
 	}
 
-	if c.LoggerConfig == nil {
-		return errors.New("missing logger config")
+	// Job service loggers
+	if len(c.LoggerConfigs) == 0 {
+		return errors.New("missing logger config of job service")
 	}
 
-	if !utils.DirExists(c.LoggerConfig.BasePath) {
-		return errors.New("logger path should be an existing dir")
+	// Job loggers
+	if len(c.JobLoggerConfigs) == 0 {
+		return errors.New("missing logger config of job")
 	}
 
-	validLevels := "DEBUG,INFO,WARNING,ERROR,FATAL"
-	if !strings.Contains(validLevels, c.LoggerConfig.LogLevel) {
-		return fmt.Errorf("logger level can only be one of: %s", validLevels)
-	}
-
-	if c.LoggerConfig.ArchivePeriod == 0 {
-		return fmt.Errorf("logger archive period should be greater than 0")
-	}
-
-	if _, err := url.Parse(c.AdminServer); err != nil {
-		return fmt.Errorf("invalid admin server endpoint: %s", err)
-	}
-
-	return nil //valid
+	return nil // valid
 }

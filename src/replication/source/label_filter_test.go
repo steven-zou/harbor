@@ -1,4 +1,4 @@
-// Copyright (c) 2018 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@ import (
 	"github.com/goharbor/harbor/src/common/utils/test"
 	"github.com/goharbor/harbor/src/replication"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/goharbor/harbor/src/replication/models"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInitOfLabelFilter(t *testing.T) {
@@ -29,16 +29,16 @@ func TestInitOfLabelFilter(t *testing.T) {
 	assert.Nil(t, filter.Init())
 }
 
-func TestGetConvertorOfLabelFilter(t *testing.T) {
+func TestGetConverterOfLabelFilter(t *testing.T) {
 	filter := NewLabelFilter(1)
-	assert.Nil(t, filter.GetConvertor())
+	assert.Nil(t, filter.GetConverter())
 }
 
 func TestDoFilterOfLabelFilter(t *testing.T) {
 	test.InitDatabaseFromEnv()
 	filter := NewLabelFilter(1)
 	items := []models.FilterItem{
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindTag,
 			Value: "library/hello-world:latest",
 		},

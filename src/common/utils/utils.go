@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -88,15 +88,19 @@ func TestTCPConn(addr string, timeout, interval int) error {
 	cancel := make(chan int)
 
 	go func() {
+		n := 1
+
+	loop:
 		for {
 			select {
 			case <-cancel:
-				break
+				break loop
 			default:
-				conn, err := net.DialTimeout("tcp", addr, time.Duration(timeout)*time.Second)
+				conn, err := net.DialTimeout("tcp", addr, time.Duration(n)*time.Second)
 				if err != nil {
 					log.Errorf("failed to connect to tcp://%s, retry after %d seconds :%v",
 						addr, interval, err)
+					n = n * 2
 					time.Sleep(time.Duration(interval) * time.Second)
 					continue
 				}
@@ -104,7 +108,7 @@ func TestTCPConn(addr string, timeout, interval int) error {
 					log.Errorf("failed to close the connection: %v", err)
 				}
 				success <- 1
-				break
+				break loop
 			}
 		}
 	}()
@@ -128,7 +132,7 @@ func ParseTimeStamp(timestamp string) (*time.Time, error) {
 	return &t, nil
 }
 
-//ConvertMapToStruct is used to fill the specified struct with map.
+// ConvertMapToStruct is used to fill the specified struct with map.
 func ConvertMapToStruct(object interface{}, values interface{}) error {
 	if object == nil {
 		return errors.New("nil struct is not supported")
@@ -168,7 +172,7 @@ func ParseProjectIDOrName(value interface{}) (int64, string, error) {
 	return id, name, nil
 }
 
-//SafeCastString -- cast a object to string saftely
+// SafeCastString -- cast a object to string saftely
 func SafeCastString(value interface{}) string {
 	if result, ok := value.(string); ok {
 		return result
@@ -176,7 +180,7 @@ func SafeCastString(value interface{}) string {
 	return ""
 }
 
-//SafeCastInt --
+// SafeCastInt --
 func SafeCastInt(value interface{}) int {
 	if result, ok := value.(int); ok {
 		return result
@@ -184,7 +188,7 @@ func SafeCastInt(value interface{}) int {
 	return 0
 }
 
-//SafeCastBool --
+// SafeCastBool --
 func SafeCastBool(value interface{}) bool {
 	if result, ok := value.(bool); ok {
 		return result
@@ -192,7 +196,7 @@ func SafeCastBool(value interface{}) bool {
 	return false
 }
 
-//SafeCastFloat64 --
+// SafeCastFloat64 --
 func SafeCastFloat64(value interface{}) float64 {
 	if result, ok := value.(float64); ok {
 		return result
@@ -208,4 +212,46 @@ func ParseOfftime(offtime int64) (hour, minite, second int) {
 	minite = int(offtime / 60)
 	second = int(offtime % 60)
 	return
+}
+
+// TrimLower ...
+func TrimLower(str string) string {
+	return strings.TrimSpace(strings.ToLower(str))
+}
+
+// GetStrValueOfAnyType return string format of any value, for map, need to convert to json
+func GetStrValueOfAnyType(value interface{}) string {
+	var strVal string
+	if _, ok := value.(map[string]interface{}); ok {
+		b, err := json.Marshal(value)
+		if err != nil {
+			log.Errorf("can not marshal json object, error %v", err)
+			return ""
+		}
+		strVal = string(b)
+	} else {
+		strVal = fmt.Sprintf("%v", value)
+	}
+	return strVal
+}
+
+// IsIllegalLength ...
+func IsIllegalLength(s string, min int, max int) bool {
+	if min == -1 {
+		return (len(s) > max)
+	}
+	if max == -1 {
+		return (len(s) <= min)
+	}
+	return (len(s) < min || len(s) > max)
+}
+
+// IsContainIllegalChar ...
+func IsContainIllegalChar(s string, illegalChar []string) bool {
+	for _, c := range illegalChar {
+		if strings.Index(s, c) >= 0 {
+			return true
+		}
+	}
+	return false
 }

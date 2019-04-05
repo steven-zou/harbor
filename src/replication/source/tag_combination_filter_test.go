@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,9 +15,9 @@
 package source
 
 import (
-	"github.com/stretchr/testify/assert"
 	"github.com/goharbor/harbor/src/replication"
 	"github.com/goharbor/harbor/src/replication/models"
+	"github.com/stretchr/testify/assert"
 
 	"testing"
 )
@@ -28,31 +28,31 @@ func TestTagCombinationFilterInit(t *testing.T) {
 	assert.Nil(t, tcfilter.Init())
 }
 
-func TestTagCombinationFilterGetConvertor(t *testing.T) {
-	assert.Nil(t, tcfilter.GetConvertor())
+func TestTagCombinationFilterGetConverter(t *testing.T) {
+	assert.Nil(t, tcfilter.GetConverter())
 }
 
 func TestTagCombinationFilterDoFilter(t *testing.T) {
 	items := []models.FilterItem{
-		models.FilterItem{
+		{
 			Kind: replication.FilterItemKindProject,
 		},
-		models.FilterItem{
+		{
 			Kind: replication.FilterItemKindRepository,
 		},
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindTag,
 			Value: "library/ubuntu:invalid_tag:latest",
 		},
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindTag,
 			Value: "library/ubuntu:14.04",
 		},
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindTag,
 			Value: "library/ubuntu:16.04",
 		},
-		models.FilterItem{
+		{
 			Kind:  replication.FilterItemKindTag,
 			Value: "library/centos:7",
 		},

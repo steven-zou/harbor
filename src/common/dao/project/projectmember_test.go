@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,14 +23,14 @@ import (
 	"github.com/goharbor/harbor/src/common/dao"
 	"github.com/goharbor/harbor/src/common/models"
 	"github.com/goharbor/harbor/src/common/utils/log"
-	_ "github.com/goharbor/harbor/src/ui/auth/db"
-	_ "github.com/goharbor/harbor/src/ui/auth/ldap"
-	cfg "github.com/goharbor/harbor/src/ui/config"
+	_ "github.com/goharbor/harbor/src/core/auth/db"
+	_ "github.com/goharbor/harbor/src/core/auth/ldap"
+	cfg "github.com/goharbor/harbor/src/core/config"
 )
 
 func TestMain(m *testing.M) {
 
-	//databases := []string{"mysql", "sqlite"}
+	// databases := []string{"mysql", "sqlite"}
 	databases := []string{"postgresql"}
 	for _, database := range databases {
 		log.Infof("run test cases for database: %s", database)
@@ -43,7 +43,7 @@ func TestMain(m *testing.M) {
 			log.Fatalf("invalid database: %s", database)
 		}
 
-		//Extract to test utils
+		// Extract to test utils
 		initSqls := []string{
 			"insert into harbor_user (username, email, password, realname)  values ('member_test_01', 'member_test_01@example.com', '123456', 'member_test_01')",
 			"insert into project (name, owner_id) values ('member_test_01', 1)",
@@ -237,7 +237,7 @@ func TestGetProjectMember(t *testing.T) {
 		t.Errorf("Error occurred when GetProjectByName: %v", err)
 	}
 	var memberList1 = []*models.Member{
-		&models.Member{
+		{
 			ID:         346,
 			Entityname: "admin",
 			Rolename:   "projectAdmin",
@@ -246,7 +246,7 @@ func TestGetProjectMember(t *testing.T) {
 			EntityType: "u"},
 	}
 	var memberList2 = []*models.Member{
-		&models.Member{
+		{
 			ID:         398,
 			Entityname: "test_group_01",
 			Rolename:   "projectAdmin",

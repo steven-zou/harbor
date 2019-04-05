@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 package dao
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -31,6 +32,9 @@ const (
 	// ClairDBAlias ...
 	ClairDBAlias = "clair-db"
 )
+
+// ErrDupRows is returned by DAO when inserting failed with error "duplicate key value violates unique constraint"
+var ErrDupRows = errors.New("sql: duplicate row in DB")
 
 // Database is an interface of different databases
 type Database interface {
@@ -52,7 +56,7 @@ func InitClairDB(clairDB *models.PostGreSQL) error {
 		usr:      clairDB.Username,
 		pwd:      clairDB.Password,
 		database: clairDB.Database,
-		sslmode:  false,
+		sslmode:  clairDB.SSLMode,
 	}
 	if err := p.Register(ClairDBAlias); err != nil {
 		return err
@@ -81,6 +85,27 @@ func InitDatabase(database *models.Database) error {
 	if err := db.Register(); err != nil {
 		return err
 	}
+
+	log.Info("Register database completed")
+	return nil
+}
+
+// InitAndUpgradeDatabase - init database and upgrade when required
+func InitAndUpgradeDatabase(database *models.Database) error {
+	if err := InitDatabase(database); err != nil {
+		return err
+	}
+	if err := UpgradeSchema(database); err != nil {
+		return err
+	}
+	if err := CheckSchemaVersion(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// CheckSchemaVersion checks that whether the schema version matches with the expected one
+func CheckSchemaVersion() error {
 	version, err := GetSchemaVersion()
 	if err != nil {
 		return err
@@ -89,8 +114,6 @@ func InitDatabase(database *models.Database) error {
 		return fmt.Errorf("unexpected database schema version, expected %s, got %s",
 			SchemaVersion, version.Version)
 	}
-
-	log.Info("Register database completed")
 	return nil
 }
 
@@ -103,7 +126,7 @@ func getDatabase(database *models.Database) (db Database, err error) {
 			database.PostGreSQL.Username,
 			database.PostGreSQL.Password,
 			database.PostGreSQL.Database,
-			false)
+			database.PostGreSQL.SSLMode)
 	default:
 		err = fmt.Errorf("invalid database: %s", database.Type)
 	}
@@ -121,6 +144,12 @@ func GetOrmer() orm.Ormer {
 	return globalOrm
 }
 
+// isDupRecErr checks if the error is due to a duplication of record, currently this
+// works only for pgSQL
+func isDupRecErr(e error) bool {
+	return strings.Contains(e.Error(), "duplicate key value violates unique constraint")
+}
+
 // ClearTable is the shortcut for test cases, it should be called only in test cases.
 func ClearTable(table string) error {
 	o := GetOrmer()
@@ -131,7 +160,7 @@ func ClearTable(table string) error {
 	if table == models.UserTable {
 		sql = fmt.Sprintf("delete from %s where user_id > 2", table)
 	}
-	if table == "project_metadata" { //make sure library is public
+	if table == "project_metadata" { // make sure library is public
 		sql = fmt.Sprintf("delete from %s where id > 1", table)
 	}
 	_, err := o.Raw(sql).Exec()
@@ -152,7 +181,7 @@ func paginateForQuerySetter(qs orm.QuerySeter, page, size int64) orm.QuerySeter 
 	return qs
 }
 
-//Escape ..
+// Escape ..
 func Escape(str string) string {
 	str = strings.Replace(str, `%`, `\%`, -1)
 	str = strings.Replace(str, `_`, `\_`, -1)

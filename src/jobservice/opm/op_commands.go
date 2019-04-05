@@ -1,4 +1,16 @@
-// Copyright 2018 The Harbor Authors. All rights reserved.
+// Copyright Project Harbor Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package opm
 
@@ -10,16 +22,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gomodule/redigo/redis"
 	"github.com/goharbor/harbor/src/jobservice/logger"
 	"github.com/goharbor/harbor/src/jobservice/models"
 	"github.com/goharbor/harbor/src/jobservice/utils"
+	"github.com/gomodule/redigo/redis"
 )
 
 const (
 	commandValidTime       = 5 * time.Minute
 	commandSweepTickerTime = 1 * time.Hour
-	//EventFireCommand for firing command event
+	// EventFireCommand for firing command event
 	EventFireCommand = "fire_command"
 )
 
@@ -28,7 +40,7 @@ type oPCommand struct {
 	fireTime int64
 }
 
-//oPCommands maintain commands list
+// oPCommands maintain commands list
 type oPCommands struct {
 	lock      *sync.RWMutex
 	commands  map[string]*oPCommand
@@ -39,7 +51,7 @@ type oPCommands struct {
 	doneChan  chan struct{}
 }
 
-//newOPCommands is constructor of OPCommands
+// newOPCommands is constructor of OPCommands
 func newOPCommands(ctx context.Context, ns string, redisPool *redis.Pool) *oPCommands {
 	return &oPCommands{
 		lock:      new(sync.RWMutex),
@@ -52,19 +64,19 @@ func newOPCommands(ctx context.Context, ns string, redisPool *redis.Pool) *oPCom
 	}
 }
 
-//Start the command sweeper
+// Start the command sweeper
 func (opc *oPCommands) Start() {
 	go opc.loop()
 	logger.Info("OP commands sweeper is started")
 }
 
-//Stop the command sweeper
+// Stop the command sweeper
 func (opc *oPCommands) Stop() {
 	opc.stopChan <- struct{}{}
 	<-opc.doneChan
 }
 
-//Fire command
+// Fire command
 func (opc *oPCommands) Fire(jobID string, command string) error {
 	if utils.IsEmptyStr(jobID) {
 		return errors.New("empty job ID")
@@ -92,7 +104,7 @@ func (opc *oPCommands) Fire(jobID string, command string) error {
 	return err
 }
 
-//Push command into the list
+// Push command into the list
 func (opc *oPCommands) Push(jobID string, command string) error {
 	if utils.IsEmptyStr(jobID) {
 		return errors.New("empty job ID")
@@ -113,7 +125,7 @@ func (opc *oPCommands) Push(jobID string, command string) error {
 	return nil
 }
 
-//Pop out the command if existing
+// Pop out the command if existing
 func (opc *oPCommands) Pop(jobID string) (string, bool) {
 	if utils.IsEmptyStr(jobID) {
 		return "", false

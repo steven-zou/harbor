@@ -6,8 +6,6 @@ services:
     volumes:
       - /data/registry:/storage
       - ./common/config/registry/:/etc/registry/
-    environment:
-      - GODEBUG=netdns=cgo
     ports:
       - 5000:5000
     command:
@@ -21,19 +19,6 @@ services:
       - ./common/config/db/env
     ports:
       - 5432:5432
-  adminserver:
-    build:
-      context: ../
-      dockerfile: make/dev/adminserver/Dockerfile
-    env_file:
-      - ./common/config/adminserver/env
-    restart: always
-    volumes:
-      - /data/config/:/etc/adminserver/config/
-      - /data/secretkey:/etc/adminserver/key
-      - /data/:/data/
-    ports:
-      - 8888:8080
   redis:
     image: goharbor/redis-photon:4.0
     restart: always

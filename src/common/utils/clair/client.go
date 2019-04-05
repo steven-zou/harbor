@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ import (
 // Client communicates with clair endpoint to scan image and get detailed scan result
 type Client struct {
 	endpoint string
-	//need to customize the logger to write output to job log.
+	// need to customize the logger to write output to job log.
 	logger *log.Logger
 	client *http.Client
 }
@@ -121,7 +121,7 @@ func (c *Client) GetNotification(id string) (*models.ClairNotification, error) {
 	if ne.Error != nil {
 		return nil, fmt.Errorf("Clair error: %s", ne.Error.Message)
 	}
-	log.Debugf("Retrived notification %s from Clair.", id)
+	log.Debugf("Retrieved notification %s from Clair.", id)
 	return ne.Notification, nil
 }
 

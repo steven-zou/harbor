@@ -5,6 +5,7 @@ This guide walks you through the fundamentals of using Harbor. You'll learn how 
 * [Manage your projects.](#managing-projects)
 * [Manage members of a project.](#managing-members-of-a-project)
 * [Replicate projects to a remote registry.](#replicating-images)
+* [Retag images within Harbor](#retag-images)
 * [Search projects and repositories.](#searching-projects-and-repositories)
 * [Manage labels.](#managing-labels)
 * [Manage Harbor system if you are the system administrator:](#administrator-options)
@@ -16,6 +17,7 @@ This guide walks you through the fundamentals of using Harbor. You'll learn how 
   * [Manage self-registration.](#managing-self-registration)
   * [Manage email settings.](#managing-email-settings)
   * [Manage registry read only.](#managing-registry-read-only)
+  * [Manage role by LDAP group.](#managing-role-by-ldap-group)
 * [Pull and push images using Docker client.](#pulling-and-pushing-images-using-docker-client)
 * [Add description to repositories](#add-description-to-repositories)
 * [Delete repositories and images.](#deleting-repositories)
@@ -25,6 +27,8 @@ This guide walks you through the fundamentals of using Harbor. You'll learn how 
 * [Manage Helm Charts](#manage-helm-charts)
   * [Manage Helm Charts via portal](#manage-helm-charts-via-portal)
   * [Working with Helm CLI](#working-with-helm-cli)
+* [Online Garbage Collection.](#online-garbage-collection)
+* [View build history.](#build-history)
 
 ## Role Based Access Control(RBAC)  
 
@@ -81,7 +85,7 @@ After the project is created, you can browse repositories, members, logs, replic
 
 ![browse project](img/new_browse_project.png)
 
-There are two views to show repositories, listview and card view, you can switch between them by clicking the corresponding icon.
+There are two views to show repositories, list view and card view, you can switch between them by clicking the corresponding icon.
 
 ![browse repositories](img/browse_project_repositories.png)
 
@@ -163,8 +167,23 @@ The system administrator can also operate the replication rules defined for the 
 
 ![browse project](img/rule_under_project_view.png)
 
+## Retag Images
 
-## Searching projects and repositories  
+Images retag helps users to tag images in Harbor, images can be tagged to  different repositories and projects, as long as the users have sufficient permissions. For example,
+
+```
+release/app:stg  -->  release/app:prd
+develop/app:v1.0 --> release/app:v1.0
+```
+To retag an image, users should have read permission (guest role or above) to the source project and write permission (developer role or above) to the target project.
+
+In Harbor portal, select the image you'd like to retag, and click the enabled `Retag` button to open the retag dialog.
+
+![retag image](img/retag_image.png)
+
+In the retag dialog, project name, repository name and the new tag should be specified. On click the `CONFIRM` button, the new tag would be created instantly. You can check the new tag in the corresponding project. 
+
+## Searching projects and repositories
 Entering a keyword in the search field at the top lists all matching projects and repositories. The search result includes both public and private repositories you have access to.  
 
 ![browse project](img/new_search.png)
@@ -235,26 +254,29 @@ You can change Harbor's registry read only settings, read only mode will allow '
 If it set to true, deleting repository, tag and pushing image will be disabled. 
 ![browse project](img/read_only_enable.png)
 
+
 ```
 $ docker push 10.117.169.182/demo/ubuntu:14.04  
 The push refers to a repository [10.117.169.182/demo/ubuntu]
 0271b8eebde3: Preparing 
 denied: The system is in read only mode. Any modification is prohibited.  
-``` 
+```
+### Managing role by LDAP group
+
+If auth_mode is ldap_auth, you can manage project role by LDAP/AD group. please refer [manage role by ldap group guide](manage_role_by_ldap_group.md).
 
 ## Pulling and pushing images using Docker client  
 
 **NOTE: Harbor only supports Registry V2 API. You need to use Docker client 1.6.0 or higher.**  
 
 Harbor supports HTTP by default and Docker client tries to connect to Harbor using HTTPS first, so if you encounter an error as below when you pull or push images, you need to configure insecure registry. Please, read [this document](https://docs.docker.com/registry/insecure/) in order to understand how to do this. 
-  
+
 
 ```Error response from daemon: Get https://myregistrydomain.com/v1/users/: dial tcp myregistrydomain.com:443 getsockopt: connection refused.```   
-  
 
 If this private registry supports only HTTP or HTTPS with an unknown CA certificate, please add   
 `--insecure-registry myregistrydomain.com` to the daemon's start up arguments.  
-  
+
 
 In the case of HTTPS, if you have access to the registry's CA certificate, simply place the CA certificate at /etc/docker/certs.d/myregistrydomain.com/ca.crt .   
 
@@ -264,7 +286,7 @@ If the project that the image belongs to is private, you should sign in first:
 ```sh
 $ docker login 10.117.169.182  
 ```
-  
+
 You can now pull the image:  
 
 ```sh
@@ -281,18 +303,18 @@ First, log in from Docker client:
 ```sh
 $ docker login 10.117.169.182  
 ```
-  
+
 Tag the image:  
 
 ```sh
 $ docker tag ubuntu:14.04 10.117.169.182/demo/ubuntu:14.04  
-``` 
+```
 
 Push the image:
 
 ```sh
 $ docker push 10.117.169.182/demo/ubuntu:14.04  
-```  
+```
 
 **Note: Replace "10.117.169.182" with the IP address or domain name of your Harbor node.**
 
@@ -304,6 +326,11 @@ Go into the repository and select the "Info" tab, and click the "EDIT" button.  
 
 ![edit info](img/edit_description.png)
 
+### Download the harbor certs
+
+Users  can click the "registry certificate" link to download the registry certificate.
+
+![browse project](img/download_harbor_certs.png)
 
 ###  Deleting repositories  
 
@@ -317,28 +344,7 @@ the repository is no longer managed in Harbor, however, the files of the reposit
 
 **CAUTION: If both tag A and tag B refer to the same image, after deleting tag A, B will also get deleted. if you enabled content trust, you need to use notary command line tool to delete the tag's signature before you delete an image.**  
 
-Next, delete the actual files of the repository using the registry's garbage collection(GC). Make sure that no one is pushing images or Harbor is not running at all before you perform a GC. If someone were pushing an image while GC is running, there is a risk that the image's layers will be mistakenly deleted which results in a corrupted image. So before running GC, a preferred approach is to stop Harbor first.  
-
-Run the below commands on the host which Harbor is deployed on to preview what files/images will be affected: 
-
-```sh
-$ docker-compose stop
-
-$ docker run -it --name gc --rm --volumes-from registry goharbor/registry:2.6.2-photon garbage-collect --dry-run /etc/registry/config.yml
-
-```  
-**NOTE:** The above option "--dry-run" will print the progress without removing any data.  
-
-Verify the result of the above test, then use the below commands to perform garbage collection and restart Harbor. 
-
-```sh
-
-$ docker run -it --name gc --rm --volumes-from registry goharbor/registry:2.6.2-photon garbage-collect  /etc/registry/config.yml
-
-$ docker-compose start
-```  
-
-For more information about GC, please see [GC](https://github.com/docker/docker.github.io/blob/master/registry/garbage-collection.md).  
+Next, delete the actual files of the repository using the [garbage collection](#online-garbage-collection) in Harbor's UI. 
 
 ### Content trust  
 **NOTE: Notary is an optional component, please make sure you have already installed it in your Harbor instance before you go through this section.**  
@@ -352,7 +358,7 @@ The root key is generated at: ``/root/.docker/trust/private/root_keys``
 You will also be asked to enter a new passphrase for the image. This is generated at ``/root/.docker/trust/private/tuf_keys/[registry name] /[imagepath]``.  
 If you are using a self-signed cert, make sure to copy the CA cert into ```/etc/docker/certs.d/10.117.169.182``` and ```$HOME/.docker/tls/10.117.169.182:4443/```. When an image is signed, it is indicated in the Web UI.  
 **Note: Replace "10.117.169.182" with the IP address or domain name of your Harbor node. In order to use content trust, HTTPS must be enabled in Harbor.**  
-  
+
 
 When an image is signed, it has a tick shown in UI; otherwise, a cross sign(X) is displayed instead.  
 ![browse project](img/content_trust.png)
@@ -432,7 +438,7 @@ Kubernetes users can easily deploy pods with images stored in Harbor.  The setti
 2. If your pod references an image under private project, you need to create a secret with the credentials of user who has permission to pull image from this project, for details refer to: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
 
 ## Manage Helm Charts
-Helm charts is a good way to package, share and use software built for Kubernetes. From version 1.6.0, Harbor is upgraded to be a composite cloud-native registry, which supports both image management and helm charts management. The charts are also isolated by projects and controlled by RBAC access control system.
+[Helm](https://helm.sh) is a package manager for [Kubernetes](https://kubernetes.io). Helm uses a packaging format called [charts](https://docs.helm.sh/developing_charts). Since version 1.6.0 Harbor is now a composite cloud-native registry which supports both container image management and Helm charts management. Access to Helm charts in Harbor is controlled by [role-based access controls (RBAC)](https://en.wikipedia.org/wiki/Role-based_access_control) and is restricted by projects.
 
 ### Manage Helm Charts via portal
 #### List charts
@@ -471,6 +477,17 @@ Check the checkbox at the 1st column to select the specified chart versions:
 * Click the `DOWNLOAD` button to download the chart artifact file. Batch operation is not supported.
 * Click the `UPLOAD` button to upload the new chart version for the current chart
 
+#### Adding labels to/remove labels from chart versions
+Users who have system administrator, project administrator or project developer role can click the `ADD LABELS` button to add labels to or remove labels from chart versions.
+
+![add labels to chart versions](img/chartrepo/add_labesl_to_chart_versions.png)
+
+
+#### Filtering chart versions by labels
+The chart versions can be filtered by labels:
+
+![filter chart versions by labels](img/chartrepo/filter_chart_versions_by_label.png)
+
 #### View chart version details
 Clicking the chart version number link will open the chart version details view. You can see more details about the specified chart version here. There are three content sections:
 * **Summary:**
@@ -500,7 +517,7 @@ helm version
 Before working, Harbor should be added into the repository list with `helm repo add` command. Two different modes are supported.
 * Add Harbor as a unified single index entry point
 
-With this mode, helm can aware all the charts located in the different projects which are accessable by the current authenticated user.
+With this mode Helm can be made aware of all the charts located in different projects and which are accessible by the currently authenticated user.
 ```
 helm repo add --ca-file ca.crt --cert-file server.crt --key-file server.key --username=admin --password=Passw0rd myrepo https://xx.xx.xx.xx/chartrepo
 ```
@@ -543,3 +560,40 @@ helm install --ca-file=ca.crt --key-file=server.key --cert-file=server.crt --use
 
 For other more helm commands like how to sign a chart, please refer to the [helm doc](https://docs.helm.sh/helm/#helm).
 
+## Online Garbage Collection
+Online Garbage Collection enables user to trigger docker registry garbage collection by clicking button on UI.
+
+**NOTES:** The space is not freed when the images are deleted from Harbor, Garbage Collection is the task to free up the space by removing blobs from the filesystem when they are no longer referenced by a manifest.
+
+For more information about Garbage Collection, please see [Garbage Collection](https://github.com/docker/docker.github.io/blob/master/registry/garbage-collection.md).  
+
+### Setting up Garbage Collection
+If you are a system admin, you can trigger garbage collection by clicking "GC Now" in the **'Garbage Collection'** tab of **'Configuration'** section under **'Administration'**.
+
+![browse project](img/gc_now.png)
+**NOTES:** Harbor is put into read-only mode when to execute Garbage Collection, and any modification on docker registry is prohibited.
+
+To avoid frequently triggering the garbage collection process, the availability of the button is restricted. It can be only triggered once in one minute.
+![browse project](img/gc_now2.png)
+
+**Scheduled Garbage Collection by Policy**
+* **None:** No policy is selected.
+* **Daily:** Policy is activated daily. It means an analysis job is scheduled to be executed at the specified time everyday. The scheduled job will do garbage collection in Harbor.
+* **Weekly:** Policy is activated weekly. It means an analysis job is scheduled to be executed at the specified time every week. The scheduled job will do garbage collection in Harbor.
+Once the policy has been configured, you have the option to save the schedule.
+![browse project](img/gc_policy.png)
+
+### Garbage Collection history
+If you are a system admin, you can view the latest 10 records of garbage collection execution.
+![browse project](img/gc_history.png)
+
+You can click on the 'details' link to view the related logs.
+![browse project](img/gc_details.png)
+
+## Build history
+
+Build history make it easy to see the contents of a container image, find the code which bulids an image, or locate the image for a source repository.
+
+In Harbor portal, enter your project, select the repository, click on the link of tag name you'd like to see its build history, the detail page will be opened. Then switch to `Build History` tab, you can see the build history information.
+
+![build_ history](img/build_history.png)

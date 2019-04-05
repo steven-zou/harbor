@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,12 +20,12 @@ import (
 	"strings"
 )
 
-//HeaderPrefix is the prefix of the value of Authorization header.
-//It has the space.
+// HeaderPrefix is the prefix of the value of Authorization header.
+// It has the space.
 const HeaderPrefix = "Harbor-Secret "
 
-//FromRequest tries to get Harbor Secret from request header.
-//It will return empty string if the reqeust is nil.
+// FromRequest tries to get Harbor Secret from request header.
+// It will return empty string if the reqeust is nil.
 func FromRequest(req *http.Request) string {
 	if req == nil {
 		return ""
@@ -37,7 +37,7 @@ func FromRequest(req *http.Request) string {
 	return ""
 }
 
-//AddToRequest add the secret to request
+// AddToRequest add the secret to request
 func AddToRequest(req *http.Request, secret string) error {
 	if req == nil {
 		return fmt.Errorf("input request is nil, unable to set secret")

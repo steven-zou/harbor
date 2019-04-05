@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import (
 	"github.com/goharbor/harbor/src/registryctl/api"
 )
 
-// Client defines methods that an Regsitry client should implement
+// Client defines methods that an Registry client should implement
 type Client interface {
 	// Health tests the connection with registry server
 	Health() error

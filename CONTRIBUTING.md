@@ -4,15 +4,14 @@
 
 Welcome to Harbor! This guide provides information on filing issues and guidelines for open source contributors. **Please leave comments / suggestions if you find something is missing or incorrect.**
 
-Contributors are encouraged to collaborate using the following resources in addition to the GitHub [issue tacker](https://github.com/vmware/harbor/issues):
-* [Slack](https://vmwarecode.slack.com/messages/harbor): If you don't have an @vmware.com or @emc.com email, please sign up at [VMware {code}](https://code.vmware.com/join/) to get a Slack invite.
-* Mail group: Use harbor-dev@googlegroups.com for discussion on Harbor development and contribution. To subscribe, send an email to harbor-dev+subscribe@googlegroups.com .
+Contributors are encouraged to collaborate using the following resources in addition to the GitHub [issue tacker](https://github.com/goharbor/harbor/issues):
+
+**Twitter:** [@project_harbor](https://twitter.com/project_harbor)  
+**User Group:** Join Harbor user email group: [harbor-users@googlegroups.com](https://groups.google.com/forum/#!forum/harbor-users) to get update of Harbor's news, features, releases, or to provide suggestion and feedback. To subscribe, send an email to [harbor-users+subscribe@googlegroups.com](mailto:harbor-users+subscribe@googlegroups.com) .  
+**Developer Group:** Join Harbor developer group: [harbor-dev@googlegroups.com](https://groups.google.com/forum/#!forum/harbor-dev) for discussion on Harbor development and contribution. To subscribe, send an email to [harbor-dev+subscribe@googlegroups.com](mailto:harbor-dev+subscribe@googlegroups.com).  
+**Slack:** Join Harbor's community for discussion and ask questions: [Cloud Native Computing Foundation](https://slack.cncf.io/), channel: #harbor and #harbor-dev
 
 ## Getting Started
-
-### Sign the CLA
-
-Before doing contributions, you must sign the CLA. If it is the first time you're making a Pull Requests(PR), please make sure to sign the contributor license agreement (CLA) online. A bot will automatically update the PR for the CLA process.
 
 ### Fork Repository
 
@@ -20,15 +19,15 @@ Fork the Harbor repository on GitHub to your personal account.
 ```
 #Set golang environment
 export GOPATH=$HOME/go
-mkdir -p $GOPATH/src/github.com/vmware
+mkdir -p $GOPATH/src/github.com/goharbor
 
 #Get code
-go get github.com/vmware/harbor
-cd $GOPATH/src/github.com/vmware/harbor
+go get github.com/goharbor/harbor
+cd $GOPATH/src/github.com/goharbor/harbor
 
 #Track repository under your personal account
-git config push.default nothing # Anything to avoid pushing to vmware/harbor by default
-git remote rename origin vmware
+git config push.default nothing # Anything to avoid pushing to goharbor/harbor by default
+git remote rename origin goharbor
 git remote add $USER git@github.com:$USER/harbor.git
 git fetch $USER
 
@@ -43,60 +42,69 @@ Here is the basic structure of the harbor code base. Some of the key folders / f
 ```
 .
 ...
-├── Makefile      #Make file for compile and build code
-├── contrib       #Contain documents, scripts, and other helpful things which are contributed by the community
-├── docs          #Keep documents here
-├── make          #Resource for building and setting up Harbor environment
+├── contrib       # Contain documents, scripts, and other helpful things which are contributed by the community
+├── docs          # Keep documents here
+├── make          # Resource for building and setting up Harbor environment
 ...
-├── src           #Source code folder
-├── tests         #Test cases for API / e2e testings
-└── tools         #Keep supporting tools
+├── src           # Source code folder
+├── tests         # Test cases for API / e2e testings
+└── tools         # Keep supporting tools
 ...
 ```
 
 The folder graph below shows the structure of the source code folder `harbor/src`, which will be your primary working directory. The key folders are also commented.
 ```
 .
-├── adminserver          # Source code for the admin server component
-│   ├── api
-│   ├── auth
-│   ├── client
-│   ├── handlers
-│   ├── systemcfg
-│   └── systeminfo
+├── chartserver          # Source code contains the main logic to handle chart. 
+├── cmd                  # Source code contains migrate script to handle DB upgrade.
 ├── common              # Source code for some general components like dao etc.
 │   ├── api
 │   ├── config
 │   ├── dao
+│   ├── http
+│   ├── job
 │   ├── models
-│   ├── notifier
-│   ├── scheduler
+│   ├── rbac
+│   ├── registryctl
 │   ├── secret
 │   ├── security
 │   └── utils
-├── jobservice          # Source code for the job service component
-│   ├── api
-│   ├── config
-│   ├── job
-│   ├── replication
-│   ├── scan
-│   └── utils
-├── ui                  # Source code for the harbor service component
+├── core          # Source code for the main busines logic. Contains rest apis and all service infomation. 
 │   ├── api
 │   ├── auth
 │   ├── config
 │   ├── controllers
 │   ├── filter
+│   ├── label
+│   ├── notifier
 │   ├── promgr
 │   ├── proxy
 │   ├── service
-│   ├── static
+│   ├── systeminfo
 │   ├── utils
 │   └── views
-├── ui_ng               # The code of harbor web UI
+├── jobservice          # Source code for the job service component
+│   ├── api
+│   ├── config
+│   ├── core
+│   ├── env
+│   ├── errs
+│   ├── job
+│   ├── logger
+│   ├── models
+│   ├── opm
+│   ├── period
+│   ├── pool
+│   ├── runtime
+│   ├── tests
+│   └── utils
+├── portal               # The code of harbor web UI
 │   ├── e2e
-│   ├── lib             # Source code of harbor-ui npm library which includes the main UI components of web UI
+│   ├── lib             # Source code of @harbor/ui npm library which includes the main UI components of web UI
 │   └── src             # General web page UI code of Harbor
+├── registryctl          # Source code contains the main logic to handle registry. 
+├── replication          # Source code contains the main logic of replication. 
+├── testing              # Some utilities to handle testing. 
 └── vendor              # Go code dependencies
     ├── github.com
     ├── golang.org
@@ -115,6 +123,10 @@ Harbor backend is written in [Go](http://golang.org/). If you don't have a Harbo
 |   1.2    |    1.7.3      |
 |   1.3    |    1.9.2      |
 |   1.4    |    1.9.2      |
+|   1.5    |    1.9.2      |
+|   1.6    |    1.9.2      |
+|   1.7    |    1.9.2      |
+|   1.8    |    1.11.2     |
 
 Ensure your GOPATH and PATH have been configured in accordance with the Go environment instructions.
 
@@ -129,16 +141,20 @@ Harbor web UI is built based on [Clarity](https://vmware.github.io/clarity/) and
 |   1.1    |      2.4.1         |       0.8.7        |
 |   1.2    |      4.1.3         |       0.9.8        |
 |   1.3    |      4.3.0         |       0.10.17      |
-|   1.4    |                    |                    |
+|   1.4    |      4.3.0         |       0.10.17      |
+|   1.5    |      4.3.0         |       0.10.27      |
+|   1.6    |      4.3.0         |       0.10.27      |
+|   1.7    |      6.0.3         |       0.12.10      |
+|   1.8    |      7.1.3         |       1.0.0        |
 
-**Npm Package Dependency:** Run the following commands to restore the package dependencies.
+**npm Package Dependency:** Run the following commands to restore the package dependencies.
 ```
 #For the web UI
-cd $REPO_DIR/src/ui_ng
+cd $REPO_DIR/src/portal
 npm install
 
 #For the UI library
-cd $REPO_DIR/src/ui_ng/lib
+cd $REPO_DIR/src/portal/lib
 npm install
 ```
 
@@ -151,6 +167,8 @@ PR are always welcome, even if they only contain small fixes like typos or a few
 
 Please submit a PR broken down into small changes bit by bit. A PR consisting of a lot features and code changes may be hard to review. It is recommended to submit PRs in an incremental fashion.
 
+Note: If you split your pull request to small changes, please make sure any of the changes goes to master will not break anything. Otherwise, it can not be merged until this feature complete. 
+
 The graphic shown below describes the overall workflow about how to contribute code to Harbor repository.
 ![contribute workflow](docs/img/workflow.png)
 
@@ -160,7 +178,7 @@ Fork the Harbor repository and clone the code to your local workspace. Per Go's 
 
 Define a local working directory:
 ```
-working_dir=$GOPATH/src/github.com/vmware
+working_dir=$GOPATH/src/github.com/goharbor
 ```
 
 Set user to match your github profile name:
@@ -174,12 +192,12 @@ Both `$working_dir` and `$user` are mentioned in the figure above.
 Changes should be made on your own fork in a new branch. The branch should be named  `XXX-description` where XXX is the number of the issue. PR should be rebased on top of master without multiple branches mixed into the PR. If your PR do not merge cleanly, use commands listed below to get it up to date.
 
 ```
-#vmware is the origin upstream
+#goharbor is the origin upstream
 
 cd $working_dir/kubernetes
-git fetch vmware
+git fetch goharbor
 git checkout master
-git rebase vmware/master
+git rebase goharbor/master
 ```
 
 Branch from the updated `master` branch:
@@ -197,6 +215,11 @@ Try to limit column width to 120 characters for both code and markdown documents
 Always run [golint](https://github.com/golang/lint) on source code before
 committing your changes.
 ```
+#Install fgt and golint
+
+go get -u golang.org/x/lint/golint
+go get github.com/GeertJohan/fgt
+
 #In the #working_dir/harbor, run
 
 go list ./... | grep -v -E 'vendor|tests' | xargs -L1 fgt golint
@@ -213,7 +236,7 @@ go test -v ./...
 
 Run UI library test cases:
 ```
-#cd #working_dir/src/ui_ng/lib
+#cd #working_dir/src/portal/lib
 npm run test
 ```
 
@@ -221,11 +244,12 @@ To build code, please refer to [build](docs/compile_guide.md) guideline.
 
 ###  Keep sync with upstream
 
-Once your branch gets out of sync with the vmware/master branch, use the following commands to update:
+```
+Once your branch gets out of sync with the goharbor/master branch, use the following commands to update:
 ```
 git checkout my_feature
 git fetch -a
-git rebase vmware/master
+git rebase goharbor/master
 
 ```
 
@@ -233,10 +257,16 @@ Please don't use `git pull` instead of the above `fetch / rebase`. `git pull` do
 
 ### Commit
 
+As Harbor has integrated the [DCO (Developer Certificate of Origin)](https://probot.github.io/apps/dco/) check tool, contributors are required to sign-off that they adhere to those requirements by adding a `Signed-off-by` line to the commit messages. Git has even provided a `-s` command line option to append that automatically to your commit messages, please use it when you commit your changes.
+
+```bash
+$ git commit -s -m 'This is my commit message'
+```
+
 Commit your changes if they're ready:
 ```
 #git add -A
-git commit #-a
+git commit -s #-a
 git push --force-with-lease $user my_feature
 ```
 
@@ -276,7 +306,7 @@ Commit changes made in response to review comments to the same branch on your fo
 
 It is a great way to contribute to Harbor by reporting an issue. Well-written and complete bug reports are always welcome! Please open an issue on Github and follow the template to fill in required information.
 
-Before opening any issue, please look up the existing [issues](https://github.com/vmware/harbor/issues) to avoid submitting a duplication.
+Before opening any issue, please look up the existing [issues](https://github.com/goharbor/harbor/issues) to avoid submitting a duplication.
 If you find a match, you can "subscribe" to it to get notified on updates. If you have additional helpful information about the issue, please leave a comment.
 
 When reporting issues, always include:
@@ -300,5 +330,4 @@ Documents are written with Markdown text. See [Writing on GitHub](https://help.g
 
 ## Design new features
 
-You can propose new designs for existing Harbor features. You can also design
-entirely new features. Please do open an issue on Github for discussion first. This is necessary to ensure the overall architecture is consistent and to avoid duplicated work in the roadmap.
+You can propose new designs for existing Harbor features. You can also design entirely new features, Please submit a proposal in GitHub.(https://github.com/goharbor/community/tree/master/proposals). Harbor maintainers will review this proposal as soon as possible. This is necessary to ensure the overall architecture is consistent and to avoid duplicated work in the roadmap.

@@ -1,4 +1,4 @@
-# Copyright 2016-2017 VMware, Inc. All Rights Reserved.
+# Copyright Project Harbor Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,9 +26,9 @@ Assign User Admin
     Input Text  xpath=//harbor-user//hbr-filter//input  ${user}
     Sleep  2
     #select checkbox
-    Click Element  //clr-dg-row[contains(.,"${user}")]//label
+    Click Element  //clr-dg-row[contains(.,'${user}')]//label
     #click assign admin
-    Click Element  //*[@id="set-admin"]
+    Click Element  //*[@id='set-admin']
     Sleep  1
 
 Switch to User Tag

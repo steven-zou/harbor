@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -61,6 +61,6 @@ func TestGetJobAuthSecret(t *testing.T) {
 }
 
 func TestGetUIAuthSecret(t *testing.T) {
-	os.Setenv("UI_SECRET", "test_ui_secret")
-	assert.Equal(t, "test_ui_secret", GetUIAuthSecret())
+	os.Setenv("CORE_SECRET", "test_core_secret")
+	assert.Equal(t, "test_core_secret", GetUIAuthSecret())
 }

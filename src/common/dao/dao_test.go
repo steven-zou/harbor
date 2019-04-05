@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,17 +15,18 @@
 package dao
 
 import (
+	"fmt"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/astaxie/beego/orm"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/goharbor/harbor/src/common"
 	"github.com/goharbor/harbor/src/common/models"
 	"github.com/goharbor/harbor/src/common/utils"
 	"github.com/goharbor/harbor/src/common/utils/log"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func execUpdate(o orm.Ormer, sql string, params ...interface{}) error {
@@ -141,6 +142,7 @@ func TestMain(m *testing.M) {
 		switch database {
 		case "postgresql":
 			PrepareTestForPostgresSQL()
+			PrepareTestData([]string{"delete from admin_job"}, []string{})
 		default:
 			log.Fatalf("invalid database: %s", database)
 		}
@@ -187,7 +189,7 @@ func TestRegister(t *testing.T) {
 		t.Errorf("Error occurred in Register: %v", err)
 	}
 
-	//Check if user registered successfully.
+	// Check if user registered successfully.
 	queryUser := models.User{
 		Username: username,
 	}
@@ -315,6 +317,11 @@ func TestListUsers(t *testing.T) {
 	}
 	if users2[0].Username != username {
 		t.Errorf("The username in result list does not match, expected: %s, actual: %s", username, users2[0].Username)
+	}
+
+	users3, err := ListUsers(&models.UserQuery{Username: username, Pagination: &models.Pagination{Page: 2, Size: 1}})
+	if len(users3) != 0 {
+		t.Errorf("Expect no user in list, but the acutal length is %d, the list: %+v", len(users3), users3)
 	}
 }
 
@@ -567,7 +574,7 @@ func TestGetUserProjectRoles(t *testing.T) {
 		t.Errorf("Error happened in GetUserProjectRole: %v, userID: %+v, project Id: %d", err, currentUser.UserID, currentProject.ProjectID)
 	}
 
-	//Get the size of current user project role.
+	// Get the size of current user project role.
 	if len(r) != 1 {
 		t.Errorf("The user, id: %d, should only have one role in project, id: %d, but actual: %d", currentUser.UserID, currentProject.ProjectID, len(r))
 	}
@@ -675,7 +682,7 @@ func TestAddRepTarget(t *testing.T) {
 		Username: "admin",
 		Password: "admin",
 	}
-	//_, err := AddRepTarget(target)
+	// _, err := AddRepTarget(target)
 	id, err := AddRepTarget(target)
 	t.Logf("added target, id: %d", id)
 	if err != nil {
@@ -872,27 +879,6 @@ func TestGetRepPolicyByName(t *testing.T) {
 		t.Errorf("unexpected name: %s, expected: %s", policy2.Name, policy.Name)
 	}
 
-}
-
-func TestAddRepPolicy2(t *testing.T) {
-	policy2 := models.RepPolicy{
-		ProjectID:   3,
-		TargetID:    3,
-		Description: "whatever",
-		Name:        "mypolicy",
-	}
-	policyID2, err := AddRepPolicy(policy2)
-	t.Logf("added policy, id: %d", policyID2)
-	if err != nil {
-		t.Errorf("Error occurred in AddRepPolicy: %v", err)
-	}
-	p, err := GetRepPolicy(policyID2)
-	if err != nil {
-		t.Errorf("Error occurred in GetPolicy: %v, id: %d", err, policyID2)
-	}
-	if p == nil {
-		t.Errorf("Unable to find a policy with id: %d", policyID2)
-	}
 }
 
 func TestAddRepJob(t *testing.T) {
@@ -1118,12 +1104,8 @@ func TestDeleteRepPolicy(t *testing.T) {
 	}
 	t.Logf("delete rep policy, id: %d", policyID)
 	p, err := GetRepPolicy(policyID)
-	if err != nil && err != orm.ErrNoRows {
-		t.Errorf("Error occurred in GetRepPolicy:%v", err)
-	}
-	if p != nil && !p.Deleted {
-		t.Errorf("Able to find rep policy after deletion, id: %d", policyID)
-	}
+	require.Nil(t, err)
+	assert.Nil(t, p)
 }
 
 func TestGetOrmer(t *testing.T) {
@@ -1311,7 +1293,7 @@ func TestImgScanOverview(t *testing.T) {
 	comp := &models.ComponentsOverview{
 		Total: 2,
 		Summary: []*models.ComponentsOverviewEntry{
-			&models.ComponentsOverviewEntry{
+			{
 				Sev:   int(models.SevMedium),
 				Count: 2,
 			},
@@ -1486,5 +1468,9 @@ func TestSaveConfigEntries(t *testing.T) {
 	if findItem != 3 {
 		t.Fatalf("Should update 3 configuration but only update %d", findItem)
 	}
+}
 
+func TestIsDupRecError(t *testing.T) {
+	assert.True(t, isDupRecErr(fmt.Errorf("pq: duplicate key value violates unique constraint \"properties_k_key\"")))
+	assert.False(t, isDupRecErr(fmt.Errorf("other error")))
 }

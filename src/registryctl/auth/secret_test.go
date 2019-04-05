@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,11 +15,12 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	commonsecret "github.com/goharbor/harbor/src/common/secret"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAuthorizeRequestInvalid(t *testing.T) {
@@ -48,4 +49,46 @@ func TestAuthorizeRequestValid(t *testing.T) {
 	err = authenticator.AuthorizeRequest(req)
 	assert.Nil(t, err)
 
+}
+
+func TestNilRequest(t *testing.T) {
+	secret := "Correct"
+	req, err := http.NewRequest("", "", nil)
+	req = nil
+	if err != nil {
+		t.Fatalf("failed to create request: %v", err)
+	}
+	_ = commonsecret.AddToRequest(req, secret)
+
+	authenticator := NewSecretHandler(map[string]string{"secret1": "correct"})
+	err = authenticator.AuthorizeRequest(req)
+	assert.Equal(t, err, ErrNoSecret)
+}
+
+func TestNoSecret(t *testing.T) {
+	secret := ""
+	req, err := http.NewRequest("", "", nil)
+	if err != nil {
+		t.Fatalf("failed to create request: %v", err)
+	}
+	_ = commonsecret.AddToRequest(req, secret)
+
+	authenticator := NewSecretHandler(map[string]string{})
+	err = authenticator.AuthorizeRequest(req)
+	assert.Equal(t, err, ErrNoSecret)
+}
+
+func TestIncorrectHarborSecret(t *testing.T) {
+	secret := "correct"
+	req, err := http.NewRequest("", "", nil)
+	if err != nil {
+		t.Fatalf("failed to create request: %v", err)
+	}
+	_ = commonsecret.AddToRequest(req, secret)
+
+	// Set req header to an incorrect value to trigger error return
+	req.Header.Set("Authorization", fmt.Sprintf("%s%s", "WrongPrefix", secret))
+	authenticator := NewSecretHandler(map[string]string{"secret1": "correct"})
+	err = authenticator.AuthorizeRequest(req)
+	assert.Equal(t, err, ErrInvalidCredential)
 }

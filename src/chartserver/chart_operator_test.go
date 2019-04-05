@@ -2,11 +2,13 @@ package chartserver
 
 import (
 	"testing"
+
+	htesting "github.com/goharbor/harbor/src/testing"
 )
 
 func TestGetChartDetails(t *testing.T) {
 	chartOpr := ChartOperator{}
-	chartDetails, err := chartOpr.GetChartDetails(helmChartContent)
+	chartDetails, err := chartOpr.GetChartDetails(htesting.HelmChartContent)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,7 +28,7 @@ func TestGetChartDetails(t *testing.T) {
 
 func TestGetChartList(t *testing.T) {
 	chartOpr := ChartOperator{}
-	infos, err := chartOpr.GetChartList(chartListContent)
+	infos, err := chartOpr.GetChartList(htesting.ChartListContent)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,15 +37,12 @@ func TestGetChartList(t *testing.T) {
 		t.Fatalf("Length of chart list should be 2, but we got %d now", len(infos))
 	}
 
-	foundHarbor := false
-	for _, chart := range infos {
-		if chart.Name == "harbor" {
-			foundHarbor = true
-			break
-		}
+	firstInSortedList := infos[0]
+	if firstInSortedList.Name != "harbor" {
+		t.Fatalf("Expect the fist item of the sorted list to be 'harbor' but got '%s'", firstInSortedList.Name)
 	}
 
-	if !foundHarbor {
-		t.Fatal("Expect chart named with 'harbor' but got nothing")
+	if firstInSortedList.LatestVersion != "0.2.0" {
+		t.Fatalf("Expect latest version '0.2.0' but got '%s'", firstInSortedList.LatestVersion)
 	}
 }

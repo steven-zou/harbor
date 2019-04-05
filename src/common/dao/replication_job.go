@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -286,13 +286,9 @@ func UpdateRepPolicy(policy *models.RepPolicy) error {
 
 // DeleteRepPolicy ...
 func DeleteRepPolicy(id int64) error {
-	o := GetOrmer()
-	policy := &models.RepPolicy{
-		ID:         id,
-		Deleted:    true,
-		UpdateTime: time.Now(),
-	}
-	_, err := o.Update(policy, "Deleted")
+	_, err := GetOrmer().Delete(&models.RepPolicy{
+		ID: id,
+	})
 	return err
 }
 
@@ -356,6 +352,9 @@ func repJobQueryConditions(query ...*models.RepJobQuery) orm.QuerySeter {
 	if q.PolicyID != 0 {
 		qs = qs.Filter("PolicyID", q.PolicyID)
 	}
+	if len(q.OpUUID) > 0 {
+		qs = qs.Filter("OpUUID__exact", q.OpUUID)
+	}
 	if len(q.Repository) > 0 {
 		qs = qs.Filter("Repository__icontains", q.Repository)
 	}
@@ -378,6 +377,12 @@ func repJobQueryConditions(query ...*models.RepJobQuery) orm.QuerySeter {
 func DeleteRepJob(id int64) error {
 	o := GetOrmer()
 	_, err := o.Delete(&models.RepJob{ID: id})
+	return err
+}
+
+// DeleteRepJobs deletes replication jobs by policy ID
+func DeleteRepJobs(policyID int64) error {
+	_, err := GetOrmer().QueryTable(&models.RepJob{}).Filter("PolicyID", policyID).Delete()
 	return err
 }
 

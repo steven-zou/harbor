@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import (
 	"strconv"
 
 	"github.com/astaxie/beego/validation"
-	http_error "github.com/goharbor/harbor/src/common/utils/error"
+	commonhttp "github.com/goharbor/harbor/src/common/http"
 	"github.com/goharbor/harbor/src/common/utils/log"
 
 	"github.com/astaxie/beego"
@@ -61,9 +61,9 @@ func (b *BaseAPI) HandleUnauthorized() {
 }
 
 // HandleForbidden ...
-func (b *BaseAPI) HandleForbidden(username string) {
-	log.Infof("forbidden: %s", username)
-	b.RenderError(http.StatusForbidden, "")
+func (b *BaseAPI) HandleForbidden(text string) {
+	log.Infof("forbidden: %s", text)
+	b.RenderError(http.StatusForbidden, text)
 }
 
 // HandleBadRequest ...
@@ -103,8 +103,8 @@ func (b *BaseAPI) ParseAndHandleError(text string, err error) {
 		return
 	}
 	log.Errorf("%s: %v", text, err)
-	if e, ok := err.(*http_error.HTTPError); ok {
-		b.RenderError(e.StatusCode, e.Detail)
+	if e, ok := err.(*commonhttp.Error); ok {
+		b.RenderError(e.Code, e.Message)
 		return
 	}
 	b.RenderError(http.StatusInternalServerError, "")

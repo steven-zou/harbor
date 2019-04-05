@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,17 +22,17 @@ import (
 )
 
 const (
-	//RepOpTransfer represents the operation of a job to transfer repository to a remote registry/harbor instance.
+	// RepOpTransfer represents the operation of a job to transfer repository to a remote registry/harbor instance.
 	RepOpTransfer string = "transfer"
-	//RepOpDelete represents the operation of a job to remove repository from a remote registry/harbor instance.
+	// RepOpDelete represents the operation of a job to remove repository from a remote registry/harbor instance.
 	RepOpDelete string = "delete"
-	//RepOpSchedule represents the operation of a job to schedule the real replication process
+	// RepOpSchedule represents the operation of a job to schedule the real replication process
 	RepOpSchedule string = "schedule"
-	//RepTargetTable is the table name for replication targets
+	// RepTargetTable is the table name for replication targets
 	RepTargetTable = "replication_target"
-	//RepJobTable is the table name for replication jobs
+	// RepJobTable is the table name for replication jobs
 	RepJobTable = "replication_job"
-	//RepPolicyTable is table name for replication policies
+	// RepPolicyTable is table name for replication policies
 	RepPolicyTable = "replication_policy"
 )
 
@@ -54,15 +54,15 @@ type RepPolicy struct {
 // RepJob is the model for a replication job, which is the execution unit on job service, currently it is used to transfer/remove
 // a repository to/from a remote registry instance.
 type RepJob struct {
-	ID         int64    `orm:"pk;auto;column(id)" json:"id"`
-	Status     string   `orm:"column(status)" json:"status"`
-	Repository string   `orm:"column(repository)" json:"repository"`
-	PolicyID   int64    `orm:"column(policy_id)" json:"policy_id"`
-	Operation  string   `orm:"column(operation)" json:"operation"`
-	Tags       string   `orm:"column(tags)" json:"-"`
-	TagList    []string `orm:"-" json:"tags"`
-	UUID       string   `orm:"column(job_uuid)" json:"-"`
-	//	Policy       RepPolicy `orm:"-" json:"policy"`
+	ID           int64     `orm:"pk;auto;column(id)" json:"id"`
+	Status       string    `orm:"column(status)" json:"status"`
+	Repository   string    `orm:"column(repository)" json:"repository"`
+	PolicyID     int64     `orm:"column(policy_id)" json:"policy_id"`
+	OpUUID       string    `orm:"column(op_uuid)" json:"op_uuid"`
+	Operation    string    `orm:"column(operation)" json:"operation"`
+	Tags         string    `orm:"column(tags)" json:"-"`
+	TagList      []string  `orm:"-" json:"tags"`
+	UUID         string    `orm:"column(job_uuid)" json:"-"`
 	CreationTime time.Time `orm:"column(creation_time);auto_now_add" json:"creation_time"`
 	UpdateTime   time.Time `orm:"column(update_time);auto_now" json:"update_time"`
 }
@@ -108,17 +108,17 @@ func (r *RepTarget) Valid(v *validation.Validation) {
 	}
 }
 
-//TableName is required by by beego orm to map RepTarget to table replication_target
+// TableName is required by by beego orm to map RepTarget to table replication_target
 func (r *RepTarget) TableName() string {
 	return RepTargetTable
 }
 
-//TableName is required by by beego orm to map RepJob to table replication_job
+// TableName is required by by beego orm to map RepJob to table replication_job
 func (r *RepJob) TableName() string {
 	return RepJobTable
 }
 
-//TableName is required by by beego orm to map RepPolicy to table replication_policy
+// TableName is required by by beego orm to map RepPolicy to table replication_policy
 func (r *RepPolicy) TableName() string {
 	return RepPolicyTable
 }
@@ -126,6 +126,7 @@ func (r *RepPolicy) TableName() string {
 // RepJobQuery holds query conditions for replication job
 type RepJobQuery struct {
 	PolicyID   int64
+	OpUUID     string
 	Repository string
 	Statuses   []string
 	Operations []string

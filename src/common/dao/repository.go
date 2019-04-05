@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,6 +21,18 @@ import (
 	"github.com/astaxie/beego/orm"
 	"github.com/goharbor/harbor/src/common/models"
 )
+
+var orderMap = map[string]string{
+	"name":           "name asc",
+	"+name":          "name asc",
+	"-name":          "name desc",
+	"creation_time":  "creation_time asc",
+	"+creation_time": "creation_time asc",
+	"-creation_time": "creation_time desc",
+	"update_time":    "update_time asc",
+	"+update_time":   "update_time asc",
+	"-update_time":   "update_time desc",
+}
 
 // AddRepository adds a repo to the database.
 func AddRepository(repo models.RepoRecord) error {
@@ -79,13 +91,13 @@ func IncreasePullCount(name string) (err error) {
 	return nil
 }
 
-//RepositoryExists returns whether the repository exists according to its name.
+// RepositoryExists returns whether the repository exists according to its name.
 func RepositoryExists(name string) bool {
 	o := GetOrmer()
 	return o.QueryTable("repository").Filter("name", name).Exist()
 }
 
-//GetTopRepos returns the most popular repositories whose project ID is
+// GetTopRepos returns the most popular repositories whose project ID is
 // in projectIDs
 func GetTopRepos(projectIDs []int64, n int) ([]*models.RepoRecord, error) {
 	repositories := []*models.RepoRecord{}
@@ -116,10 +128,16 @@ func GetTotalOfRepositories(query ...*models.RepositoryQuery) (int64, error) {
 // GetRepositories ...
 func GetRepositories(query ...*models.RepositoryQuery) ([]*models.RepoRecord, error) {
 	repositories := []*models.RepoRecord{}
+	order := "name asc"
+	if len(query) > 0 && query[0] != nil {
+		if s, ok := orderMap[query[0].Sort]; ok {
+			order = s
+		}
+	}
 
-	sql, params := repositoryQueryConditions(query...)
-	sql = `select r.repository_id, r.name, r.project_id, r.description, r.pull_count, 
-	r.star_count, r.creation_time, r.update_time ` + sql + `order by r.name `
+	condition, params := repositoryQueryConditions(query...)
+	sql := fmt.Sprintf(`select r.repository_id, r.name, r.project_id, r.description, r.pull_count, 
+	r.star_count, r.creation_time, r.update_time %s order by r.%s `, condition, order)
 	if len(query) > 0 && query[0] != nil {
 		page, size := query[0].Page, query[0].Size
 		if size > 0 {

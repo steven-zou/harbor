@@ -1,4 +1,4 @@
-// Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+// Copyright Project Harbor Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import (
 const (
 	ProMetaPublic             = "public"
 	ProMetaEnableContentTrust = "enable_content_trust"
-	ProMetaPreventVul         = "prevent_vul" //prevent vulnerable images from being pulled
+	ProMetaPreventVul         = "prevent_vul" // prevent vulnerable images from being pulled
 	ProMetaSeverity           = "severity"
 	ProMetaAutoScan           = "auto_scan"
 	SeverityNone              = "negligible"

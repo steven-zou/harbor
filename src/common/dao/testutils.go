@@ -1,4 +1,4 @@
-// copyright (c) 2017 vmware, inc. all rights reserved.
+// Copyright Project Harbor Authors
 //
 // licensed under the apache license, version 2.0 (the "license");
 // you may not use this file except in compliance with the license.
@@ -132,4 +132,13 @@ func ArrayEqual(arrayA, arrayB []int) bool {
 		}
 	}
 	return true
+}
+
+// ClearHTTPAuthProxyUsers remove the records from harbor_users to delete all user imported via
+// HTTP Auth Proxy
+func ClearHTTPAuthProxyUsers() error {
+	o := GetOrmer()
+	sql := "DELETE FROM harbor_user WHERE comment='By Authproxy'"
+	_, err := o.Raw(sql).Exec()
+	return err
 }
