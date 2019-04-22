@@ -397,15 +397,15 @@ func buildImageData(image models.ImageRepository) (*provider.PreheatImage, error
 		return nil, err
 	}
 
-	extURL, err := config.ExtURL()
-	if err != nil {
-		return nil, err
-	}
+	// extURL, err := config.ExtURL()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	access := []*rtoken.ResourceActions{&rtoken.ResourceActions{
 		Type:    "repository",
-		Name:    fmt.Sprintf("%s/%s", extURL, image.Name()),
-		Actions: []string{"pull"},
+		Name:    fmt.Sprintf("%s", image.Name()),
+		Actions: []string{"pull", "push", "*"},
 	}}
 
 	tk, err := token.MakeToken("distributor", token.Registry, access)
