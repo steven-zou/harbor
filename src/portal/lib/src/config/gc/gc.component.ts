@@ -31,6 +31,7 @@ export class GcComponent implements OnInit {
   disableGC: boolean = false;
   getText = 'CONFIG.GC';
   getLabelCurrent = 'GC.CURRENT_SCHEDULE';
+  @Output() loadingGcStatus = new EventEmitter<boolean>();
   @ViewChild(CronScheduleComponent)
   CronScheduleComponent: CronScheduleComponent;
   constructor(
@@ -48,8 +49,13 @@ export class GcComponent implements OnInit {
   }
 
   getCurrentSchedule() {
+    this.loadingGcStatus.emit(true);
     this.gcRepoService.getSchedule().subscribe(schedule => {
       this.initSchedule(schedule);
+      this.loadingGcStatus.emit(false);
+    }, error => {
+      this.errorHandler.error(error);
+      this.loadingGcStatus.emit(false);
     });
   }
 
@@ -82,10 +88,6 @@ export class GcComponent implements OnInit {
         this.translate.get("GC.MSG_SUCCESS").subscribe((res: string) => {
           this.errorHandler.info(res);
         });
-        this.getJobs();
-        setTimeout(() => {
-          this.getJobs();
-        }, THREE_SECONDS); // to avoid some jobs not finished.
       },
       error => {
         this.errorHandler.error(error);
@@ -116,6 +118,7 @@ export class GcComponent implements OnInit {
             .get("GC.MSG_SCHEDULE_RESET")
             .subscribe((res) => {
               this.errorHandler.info(res);
+              this.CronScheduleComponent.resetSchedule();
             });
           this.resetSchedule(cron);
         },
@@ -128,6 +131,7 @@ export class GcComponent implements OnInit {
         response => {
           this.translate.get("GC.MSG_SCHEDULE_SET").subscribe((res) => {
             this.errorHandler.info(res);
+            this.CronScheduleComponent.resetSchedule();
           });
           this.resetSchedule(cron);
         },

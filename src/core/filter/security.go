@@ -17,6 +17,7 @@ package filter
 import (
 	"context"
 	"fmt"
+	"github.com/goharbor/harbor/src/common/utils/oidc"
 	"net/http"
 	"regexp"
 
@@ -65,6 +66,8 @@ const (
 
 	// PmKey is context value key for the project manager
 	PmKey ContextValueKey = "harbor_project_manager"
+	// AuthModeKey is context key for auth mode
+	AuthModeKey ContextValueKey = "harbor_auth_mode"
 )
 
 var (
@@ -109,7 +112,9 @@ func Init() {
 
 	// standalone
 	reqCtxModifiers = []ReqCtxModifier{
+		&configCtxModifier{},
 		&secretReqCtxModifier{config.SecretStore},
+		&oidcCliReqCtxModifier{},
 		&authProxyReqCtxModifier{},
 		&robotAuthReqCtxModifier{},
 		&basicAuthReqCtxModifier{},
@@ -140,6 +145,20 @@ func SecurityFilter(ctx *beegoctx.Context) {
 // ReqCtxModifier modifies the context of request
 type ReqCtxModifier interface {
 	Modify(*beegoctx.Context) bool
+}
+
+// configCtxModifier populates to the configuration values to context, which are to be read by subsequent
+// filters.
+type configCtxModifier struct {
+}
+
+func (c *configCtxModifier) Modify(ctx *beegoctx.Context) bool {
+	m, err := config.AuthMode()
+	if err != nil {
+		log.Warningf("Failed to get auth mode, err: %v", err)
+	}
+	addToReqContext(ctx.Request, AuthModeKey, m)
+	return false
 }
 
 type secretReqCtxModifier struct {
@@ -205,15 +224,46 @@ func (r *robotAuthReqCtxModifier) Modify(ctx *beegoctx.Context) bool {
 	return true
 }
 
+type oidcCliReqCtxModifier struct{}
+
+func (oc *oidcCliReqCtxModifier) Modify(ctx *beegoctx.Context) bool {
+	path := ctx.Request.URL.Path
+	if path != "/service/token" && !strings.HasPrefix(path, "/chartrepo/") {
+		log.Debug("OIDC CLI modifer only handles request by docker CLI or helm CLI")
+		return false
+	}
+	if ctx.Request.Context().Value(AuthModeKey).(string) != common.OIDCAuth {
+		return false
+	}
+	username, secret, ok := ctx.Request.BasicAuth()
+	if !ok {
+		return false
+	}
+
+	user, err := dao.GetUser(models.User{
+		Username: username,
+	})
+	if err != nil {
+		log.Errorf("Failed to get user: %v", err)
+		return false
+	}
+	if user == nil {
+		return false
+	}
+	if err := oidc.VerifySecret(ctx.Request.Context(), user.UserID, secret); err != nil {
+		log.Errorf("Failed to verify secret: %v", err)
+		return false
+	}
+	pm := config.GlobalProjectMgr
+	sc := local.NewSecurityContext(user, pm)
+	setSecurCtxAndPM(ctx.Request, sc, pm)
+	return true
+}
+
 type authProxyReqCtxModifier struct{}
 
 func (ap *authProxyReqCtxModifier) Modify(ctx *beegoctx.Context) bool {
-	authMode, err := config.AuthMode()
-	if err != nil {
-		log.Errorf("fail to get auth mode, %v", err)
-		return false
-	}
-	if authMode != common.HTTPAuth {
+	if ctx.Request.Context().Value(AuthModeKey).(string) != common.HTTPAuth {
 		return false
 	}
 
@@ -249,7 +299,7 @@ func (ap *authProxyReqCtxModifier) Modify(ctx *beegoctx.Context) bool {
 		},
 		BearerToken: proxyPwd,
 		TLSClientConfig: rest.TLSClientConfig{
-			Insecure: httpAuthProxyConf.SkipCertVerify,
+			Insecure: !httpAuthProxyConf.VerifyCert,
 		},
 	}
 	authClient, err := rest.RESTClientFor(authClientCfg)
@@ -307,7 +357,6 @@ func (ap *authProxyReqCtxModifier) Modify(ctx *beegoctx.Context) bool {
 		return false
 	}
 
-	log.Debug("using local database project manager")
 	pm := config.GlobalProjectMgr
 	log.Debug("creating local database security context for auth proxy...")
 	securCtx := local.NewSecurityContext(user, pm)
@@ -401,19 +450,30 @@ func (b *basicAuthReqCtxModifier) Modify(ctx *beegoctx.Context) bool {
 type sessionReqCtxModifier struct{}
 
 func (s *sessionReqCtxModifier) Modify(ctx *beegoctx.Context) bool {
-	var user models.User
 	userInterface := ctx.Input.Session("user")
-
 	if userInterface == nil {
 		log.Debug("can not get user information from session")
 		return false
 	}
-
 	log.Debug("got user information from session")
 	user, ok := userInterface.(models.User)
 	if !ok {
 		log.Info("can not get user information from session")
 		return false
+	}
+	if ctx.Request.Context().Value(AuthModeKey).(string) == common.OIDCAuth {
+		ou, err := dao.GetOIDCUserByUserID(user.UserID)
+		if err != nil {
+			log.Errorf("Failed to get OIDC user info, error: %v", err)
+			return false
+		}
+		if ou != nil { // If user does not have OIDC metadata, it means he is not onboarded via OIDC authn,
+			// so we can skip checking the token.
+			if err := oidc.VerifyAndPersistToken(ctx.Request.Context(), ou); err != nil {
+				log.Errorf("Failed to verify secret, error: %v", err)
+				return false
+			}
+		}
 	}
 	log.Debug("using local database project manager")
 	pm := config.GlobalProjectMgr

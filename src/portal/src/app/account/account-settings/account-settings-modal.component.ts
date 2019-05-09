@@ -15,6 +15,7 @@ import { ChangeDetectorRef } from '@angular/core';
 import { Component, OnInit, ViewChild, AfterViewChecked } from "@angular/core";
 import { NgForm } from "@angular/forms";
 import { Router, NavigationExtras } from "@angular/router";
+import { ConfirmationMessage } from '../../shared/confirmation-dialog/confirmation-message';
 
 import { SessionUser } from "../../shared/session-user";
 import { SessionService } from "../../shared/session.service";
@@ -22,7 +23,13 @@ import { InlineAlertComponent } from "../../shared/inline-alert/inline-alert.com
 import { MessageHandlerService } from "../../shared/message-handler/message-handler.service";
 import { SearchTriggerService } from "../../base/global-search/search-trigger.service";
 import { CommonRoutes } from "../../shared/shared.const";
-
+import { CopyInputComponent } from "@harbor/ui";
+import { AccountSettingsModalService } from './account-settings-modal-service.service';
+import {  ConfirmationDialogComponent } from "../../shared/confirmation-dialog/confirmation-dialog.component";
+import {
+  ConfirmationTargets,
+  ConfirmationButtons
+} from "../../shared/shared.const";
 @Component({
   selector: "account-settings-modal",
   templateUrl: "account-settings-modal.component.html",
@@ -44,16 +51,21 @@ export class AccountSettingsModalComponent implements OnInit, AfterViewChecked {
   newAdminName = "admin@harbor.local";
   renameConfirmation = false;
 //   confirmRename = false;
+  showGenerateCli: boolean = false;
+  @ViewChild("confirmationDialog")
+  confirmationDialogComponent: ConfirmationDialogComponent;
 
   accountFormRef: NgForm;
   @ViewChild("accountSettingsFrom") accountForm: NgForm;
   @ViewChild(InlineAlertComponent) inlineAlert: InlineAlertComponent;
+  @ViewChild("copyInput") copyInput: CopyInputComponent;
 
   constructor(
     private session: SessionService,
     private msgHandler: MessageHandlerService,
     private router: Router,
     private searchTrigger: SearchTriggerService,
+    private accountSettingsService: AccountSettingsModalService,
     private ref: ChangeDetectorRef
   ) {}
 
@@ -235,7 +247,7 @@ export class AccountSettingsModalComponent implements OnInit, AfterViewChecked {
       account_settings_email: true,
       account_settings_full_name: true
     };
-
+    this.showGenerateCli = false;
     this.opened = true;
   }
 
@@ -319,5 +331,34 @@ export class AccountSettingsModalComponent implements OnInit, AfterViewChecked {
     }
     this.inlineAlert.close();
     this.opened = false;
+  }
+  onSuccess(event) {
+    this.inlineAlert.showInlineSuccess({message: 'PROFILE.COPY_SUCCESS'});
+  }
+  onError(event) {
+    this.inlineAlert.showInlineError({message: 'PROFILE.COPY_ERROR'});
+  }
+  generateCli(userId): void {
+    let generateCliMessage = new ConfirmationMessage(
+      'PROFILE.CONFIRM_TITLE_CLI_GENERATE',
+      'PROFILE.CONFIRM_BODY_CLI_GENERATE',
+      '',
+      userId,
+      ConfirmationTargets.TARGET,
+      ConfirmationButtons.CONFIRM_CANCEL);
+  this.confirmationDialogComponent.open(generateCliMessage);
+  }
+  showGenerateCliFn() {
+    this.showGenerateCli = !this.showGenerateCli;
+  }
+  confirmGenerate(confirmData): void {
+    let userId = confirmData.data;
+    this.accountSettingsService.generateCli(userId).subscribe(cliSecret => {
+      let secret = JSON.parse(cliSecret._body).secret;
+      this.account.oidc_user_meta.secret = secret;
+      this.inlineAlert.showInlineSuccess({message: 'PROFILE.GENERATE_SUCCESS'});
+    }, error => {
+      this.inlineAlert.showInlineError({message: 'PROFILE.GENERATE_ERROR'});
+    });
   }
 }

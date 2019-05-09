@@ -19,7 +19,7 @@ import {
     ChangeDetectionStrategy,
     ChangeDetectorRef
 } from "@angular/core";
-import { Subscription, Observable, forkJoin } from "rxjs";
+import { Subscription, Observable, forkJoin, throwError as observableThrowError } from "rxjs";
 import { TranslateService } from "@ngx-translate/core";
 import { Comparator } from "../service/interface";
 
@@ -27,7 +27,7 @@ import { Endpoint } from "../service/interface";
 import { EndpointService } from "../service/endpoint.service";
 
 import { ErrorHandler } from "../error-handler/index";
-import { map, catchError } from "rxjs/operators";
+import { map, catchError, finalize } from "rxjs/operators";
 import { ConfirmationMessage } from "../confirmation-dialog/confirmation-message";
 import { ConfirmationAcknowledgement } from "../confirmation-dialog/confirmation-state-message";
 import { ConfirmationDialogComponent } from "../confirmation-dialog/confirmation-dialog.component";
@@ -40,6 +40,7 @@ import {
 
 import { CreateEditEndpointComponent } from "../create-edit-endpoint/create-edit-endpoint.component";
 import { CustomComparator } from "../utils";
+import { errorHandler as errorHandFn } from "../shared/shared.utils";
 
 import { operateChanges, OperateInfo, OperationState } from "../operation/operate";
 import { OperationService } from "../operation/operation.service";
@@ -76,12 +77,16 @@ export class EndpointComponent implements OnInit, OnDestroy {
 
     get initEndpoint(): Endpoint {
         return {
-            endpoint: "",
-            name: "",
-            username: "",
-            password: "",
+            credential: {
+                access_key: "",
+                access_secret: "",
+                type: ""
+            },
+            description: "",
             insecure: false,
-            type: 0
+            name: "",
+            type: "",
+            url: "",
         };
     }
 
@@ -90,7 +95,6 @@ export class EndpointComponent implements OnInit, OnDestroy {
         private translateService: TranslateService,
         private operationService: OperationService,
         private ref: ChangeDetectorRef) {
-        this.forceRefreshView(1000);
     }
 
     ngOnInit(): void {
@@ -111,14 +115,14 @@ export class EndpointComponent implements OnInit, OnDestroy {
     retrieve(): void {
         this.loading = true;
         this.selectedRow = [];
-        this.endpointService.getEndpoints(this.targetName)
+        this.endpointService.getEndpoints(this.targetName).pipe(finalize(() => {
+            this.loading = false;
+            this.forceRefreshView(1000);
+        }))
             .subscribe(targets => {
                 this.targets = targets || [];
-                this.forceRefreshView(1000);
-                this.loading = false;
             }, error => {
                 this.errorHandler.error(error);
-                this.loading = false;
             });
     }
 
@@ -207,17 +211,11 @@ export class EndpointComponent implements OnInit, OnDestroy {
                         });
                 })
                 , catchError(error => {
-                    if (error && error.status === 412) {
-                        return forkJoin(this.translateService.get('BATCH.DELETED_FAILURE'),
-                            this.translateService.get('DESTINATION.FAILED_TO_DELETE_TARGET_IN_USED')).pipe(map(res => {
-                                operateChanges(operMessage, OperationState.failure, res[1]);
-                            }));
-                    } else {
-                        return this.translateService.get('BATCH.DELETED_FAILURE').pipe(map(res => {
-                            operateChanges(operMessage, OperationState.failure, res);
-                        }));
-                    }
-
+                    const message = errorHandFn(error);
+                    this.translateService.get(message).subscribe(res =>
+                        operateChanges(operMessage, OperationState.failure, res)
+                    );
+                    return observableThrowError(message);
                 }
                 ));
     }

@@ -27,9 +27,8 @@ import {
 import { Comparator } from "../service/interface";
 import { TranslateService } from "@ngx-translate/core";
 import { map, catchError } from "rxjs/operators";
-import { Observable, forkJoin, throwError as observableThrowError } from "rxjs";
+import { Observable, forkJoin, of, throwError as observableThrowError } from "rxjs";
 import { ReplicationService } from "../service/replication.service";
-
 import {
     ReplicationJob,
     ReplicationJobItem,
@@ -47,7 +46,9 @@ import { ErrorHandler } from "../error-handler/error-handler";
 import { CustomComparator } from "../utils";
 import { operateChanges, OperateInfo, OperationState } from "../operation/operate";
 import { OperationService } from "../operation/operation.service";
+import { errorHandler as errorHandFn } from "../shared/shared.utils";
 
+const jobstatus = "InProgress";
 
 @Component({
     selector: "hbr-list-replication-rule",
@@ -81,7 +82,6 @@ export class ListReplicationRuleComponent implements OnInit, OnChanges {
     rules: ReplicationRule[];
     changedRules: ReplicationRule[];
     ruleName: string;
-    canDeleteRule: boolean;
 
     selectedRow: ReplicationRule;
 
@@ -133,7 +133,7 @@ export class ListReplicationRuleComponent implements OnInit, OnChanges {
     retrieveRules(ruleName = ""): void {
         this.loading = true;
         /*this.selectedRow = null;*/
-            this.replicationService.getReplicationRules(this.projectId, ruleName)
+        this.replicationService.getReplicationRules(this.projectId, ruleName)
             .subscribe(rules => {
                 this.rules = rules || [];
                 // job list hidden
@@ -148,21 +148,6 @@ export class ListReplicationRuleComponent implements OnInit, OnChanges {
 
     replicateRule(rule: ReplicationRule): void {
         this.replicateManual.emit(rule);
-    }
-
-    hasDeletedLabel(rule: any) {
-        if (rule.filters) {
-            let count = 0;
-            rule.filters.forEach((data: any) => {
-                if (data.kind === 'label' && data.value.deleted) {
-                    count++;
-                }
-            });
-            if (count === 0) {
-                return 'enabled';
-            } else { return 'disabled'; }
-        }
-        return 'enabled';
     }
 
     deletionConfirm(message: ConfirmationAcknowledgement) {
@@ -194,28 +179,6 @@ export class ListReplicationRuleComponent implements OnInit, OnChanges {
         this.editOne.emit(rule);
     }
 
-    jobList(id: string | number): Observable<void> {
-        let ruleData: ReplicationJobItem[];
-        this.canDeleteRule = true;
-        let count = 0;
-        return this.replicationService.getJobs(id)
-            .pipe(map(response => {
-                ruleData = response.data;
-                if (ruleData.length) {
-                    ruleData.forEach(job => {
-                        if (
-                            job.status === "pending" ||
-                            job.status === "running" ||
-                            job.status === "retrying"
-                        ) {
-                            count++;
-                        }
-                    });
-                }
-                this.canDeleteRule = count > 0 ? false : true;
-            }), catchError(error => observableThrowError(error)));
-    }
-
     deleteRule(rule: ReplicationRule) {
         if (rule) {
             let deletionMessage = new ConfirmationMessage(
@@ -233,15 +196,13 @@ export class ListReplicationRuleComponent implements OnInit, OnChanges {
     deleteOpe(rule: ReplicationRule) {
         if (rule) {
             let observableLists: any[] = [];
-            this.jobList(rule.id).subscribe(items => {
-                observableLists.push(this.delOperate(rule));
+            observableLists.push(this.delOperate(rule));
 
-                forkJoin(...observableLists).subscribe(item => {
-                    this.selectedRow = null;
-                    this.reload.emit(true);
-                    let hnd = setInterval(() => this.ref.markForCheck(), 200);
-                    setTimeout(() => clearInterval(hnd), 2000);
-                });
+            forkJoin(...observableLists).subscribe(item => {
+                this.selectedRow = null;
+                this.reload.emit(true);
+                let hnd = setInterval(() => this.ref.markForCheck(), 200);
+                setTimeout(() => clearInterval(hnd), 2000);
             });
         }
     }
@@ -255,30 +216,18 @@ export class ListReplicationRuleComponent implements OnInit, OnChanges {
         operMessage.data.name = rule.name;
         this.operationService.publishInfo(operMessage);
 
-        if (!this.canDeleteRule) {
-            return forkJoin(this.translateService.get('BATCH.DELETED_FAILURE'),
-                this.translateService.get('REPLICATION.DELETION_SUMMARY_FAILURE')).pipe(map(res => {
-                    operateChanges(operMessage, OperationState.failure, res[1]);
-                }));
-        }
-
         return this.replicationService
             .deleteReplicationRule(+rule.id)
             .pipe(map(() => {
                 this.translateService.get('BATCH.DELETED_SUCCESS')
                     .subscribe(res => operateChanges(operMessage, OperationState.success));
             })
-            , catchError(error => {
-                if (error && error.status === 412) {
-                    return forkJoin(this.translateService.get('BATCH.DELETED_FAILURE'),
-                        this.translateService.get('REPLICATION.FAILED_TO_DELETE_POLICY_ENABLED')).pipe(map(res => {
-                            operateChanges(operMessage, OperationState.failure, res[1]);
-                        }));
-                } else {
-                    return this.translateService.get('BATCH.DELETED_FAILURE').pipe(map(res => {
-                        operateChanges(operMessage, OperationState.failure, res);
-                    }));
-                }
-            }));
+                , catchError(error => {
+                    const message = errorHandFn(error);
+                    this.translateService.get(message).subscribe(res =>
+                        operateChanges(operMessage, OperationState.failure, res)
+                    );
+                    return observableThrowError(message);
+                }));
     }
 }

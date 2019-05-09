@@ -18,7 +18,8 @@ import {
   ViewChild,
   AfterViewChecked,
   ChangeDetectorRef,
-  OnDestroy
+  OnDestroy,
+  OnInit
 } from "@angular/core";
 import { NgForm } from "@angular/forms";
 import { Subscription } from "rxjs";
@@ -27,28 +28,30 @@ import { TranslateService } from "@ngx-translate/core";
 import { EndpointService } from "../service/endpoint.service";
 import { ErrorHandler } from "../error-handler/index";
 import { InlineAlertComponent } from "../inline-alert/inline-alert.component";
-import { Endpoint } from "../service/interface";
+import { Endpoint, PingEndpoint } from "../service/interface";
 import { clone, compareValue, isEmptyObject } from "../utils";
 
-
 const FAKE_PASSWORD = "rjGcfuRu";
-
+const DOCKERHUB_URL = "https://hub.docker.com";
 @Component({
   selector: "hbr-create-edit-endpoint",
   templateUrl: "./create-edit-endpoint.component.html",
   styleUrls: ["./create-edit-endpoint.component.scss"]
 })
 export class CreateEditEndpointComponent
-  implements AfterViewChecked, OnDestroy {
+  implements AfterViewChecked, OnDestroy, OnInit {
   modalTitle: string;
+  urlDisabled: boolean = false;
+  editDisabled: boolean = false;
+  controlEnabled: boolean = false;
   createEditDestinationOpened: boolean;
   staticBackdrop: boolean = true;
   closable: boolean = false;
   editable: boolean;
-
+  adapterList: string[];
   target: Endpoint = this.initEndpoint();
+  selectedType: string;
   initVal: Endpoint;
-
   targetForm: NgForm;
   @ViewChild("targetForm") currentForm: NgForm;
 
@@ -70,6 +73,17 @@ export class CreateEditEndpointComponent
     private translateService: TranslateService,
     private ref: ChangeDetectorRef
   ) {}
+
+  ngOnInit(): void {
+    this.endpointService.getAdapters().subscribe(
+      adapters => {
+        this.adapterList = adapters || [];
+      },
+      error => {
+        this.errorHandler.error(error);
+      }
+    );
+  }
 
   public get isValid(): boolean {
     return (
@@ -98,12 +112,28 @@ export class CreateEditEndpointComponent
 
   initEndpoint(): Endpoint {
     return {
-      endpoint: "",
-      name: "",
-      username: "",
-      password: "",
+      credential: {
+        access_key: "",
+        access_secret: "",
+        type: "basic"
+      },
+      description: "",
       insecure: false,
-      type: 0
+      name: "",
+      type: "harbor",
+      url: ""
+    };
+  }
+
+  initPingEndpoint(): PingEndpoint {
+    return {
+      access_key: "",
+      access_secret: "",
+      description: "",
+      insecure: false,
+      name: "",
+      type: "harbor",
+      url: ""
     };
   }
 
@@ -125,7 +155,6 @@ export class CreateEditEndpointComponent
     this.initVal = this.initEndpoint();
     this.formValues = null;
     this.endpointId = "";
-
     this.inlineAlert.close();
   }
 
@@ -153,34 +182,54 @@ export class CreateEditEndpointComponent
       this.translateService
         .get("DESTINATION.TITLE_EDIT")
         .subscribe(res => (this.modalTitle = res));
-      this.endpointService.getEndpoint(targetId)
-        .subscribe(target => {
+      this.endpointService.getEndpoint(targetId).subscribe(
+        target => {
           this.target = target;
+          this.urlDisabled = this.target.type === 'docker-hub' ? true : false;
           // Keep data cache
           this.initVal = clone(target);
-          this.initVal.password = FAKE_PASSWORD;
-          this.target.password = FAKE_PASSWORD;
+          this.initVal.credential.access_secret = FAKE_PASSWORD;
+          this.target.credential.access_secret = FAKE_PASSWORD;
 
           // Open the modal now
           this.open();
+          this.editDisabled = true;
           this.forceRefreshView(2000);
-        }, error => this.errorHandler.error(error));
+        },
+        error => this.errorHandler.error(error)
+      );
     } else {
+      this.urlDisabled = false;
       this.endpointId = "";
       this.translateService
         .get("DESTINATION.TITLE_ADD")
         .subscribe(res => (this.modalTitle = res));
       // Directly open the modal
       this.open();
+      this.editDisabled = false;
+    }
+  }
+
+  adapterChange($event): void {
+    let selectValue = this.targetForm.controls.adapter.value;
+    if (selectValue === 'docker-hub') {
+      this.urlDisabled = true;
+      this.targetForm.controls.endpointUrl.setValue(DOCKERHUB_URL);
+    } else {
+      this.urlDisabled = false;
+      this.targetForm.controls.endpointUrl.setValue("");
     }
   }
 
   testConnection() {
-    let payload: Endpoint = this.initEndpoint();
+    let payload: PingEndpoint = this.initPingEndpoint();
     if (!this.endpointId) {
-      payload.endpoint = this.target.endpoint;
-      payload.username = this.target.username;
-      payload.password = this.target.password;
+      payload.name = this.target.name;
+      payload.description = this.target.description;
+      payload.type = this.target.type;
+      payload.url = this.target.url;
+      payload.access_key = this.target.credential.access_key;
+      payload.access_secret = this.target.credential.access_secret;
       payload.insecure = this.target.insecure;
     } else {
       let changes: { [key: string]: any } = this.getChanges();
@@ -197,18 +246,20 @@ export class CreateEditEndpointComponent
     }
 
     this.testOngoing = true;
-    this.endpointService.pingEndpoint(payload)
-      .subscribe(response => {
+    this.endpointService.pingEndpoint(payload).subscribe(
+      response => {
         this.inlineAlert.showInlineSuccess({
           message: "DESTINATION.TEST_CONNECTION_SUCCESS"
         });
         this.forceRefreshView(2000);
         this.testOngoing = false;
-      }, error => {
+      },
+      error => {
         this.inlineAlert.showInlineError("DESTINATION.TEST_CONNECTION_FAILURE");
         this.forceRefreshView(2000);
         this.testOngoing = false;
-      });
+      }
+    );
   }
 
   onSubmit() {
@@ -223,10 +274,9 @@ export class CreateEditEndpointComponent
     if (this.onGoing) {
       return; // Avoid duplicated submitting
     }
-
     this.onGoing = true;
-    this.endpointService.createEndpoint(this.target)
-      .subscribe(response => {
+    this.endpointService.createEndpoint(this.target).subscribe(
+      response => {
         this.translateService
           .get("DESTINATION.CREATED_SUCCESS")
           .subscribe(res => this.errorHandler.info(res));
@@ -234,14 +284,13 @@ export class CreateEditEndpointComponent
         this.onGoing = false;
         this.close();
         this.forceRefreshView(2000);
-      }, error => {
+      },
+      error => {
         this.onGoing = false;
-        let errorMessageKey = this.handleErrorMessageKey(error.status);
-        this.translateService.get(errorMessageKey).subscribe(res => {
-          this.inlineAlert.showInlineError(res);
-        });
+        this.inlineAlert.showInlineError(error);
         this.forceRefreshView(2000);
-      });
+      }
+    );
   }
 
   updateEndpoint() {
@@ -257,6 +306,7 @@ export class CreateEditEndpointComponent
     if (isEmptyObject(changes)) {
       return;
     }
+
     let changekeys: { [key: string]: any } = Object.keys(changes);
 
     changekeys.forEach((key: string) => {
@@ -268,8 +318,8 @@ export class CreateEditEndpointComponent
     }
 
     this.onGoing = true;
-      this.endpointService.updateEndpoint(this.target.id, payload)
-      .subscribe(response => {
+    this.endpointService.updateEndpoint(this.target.id, payload).subscribe(
+      response => {
         this.translateService
           .get("DESTINATION.UPDATED_SUCCESS")
           .subscribe(res => this.errorHandler.info(res));
@@ -277,25 +327,13 @@ export class CreateEditEndpointComponent
         this.close();
         this.onGoing = false;
         this.forceRefreshView(2000);
-      }, error => {
-        let errorMessageKey = this.handleErrorMessageKey(error.status);
-        this.translateService.get(errorMessageKey).subscribe(res => {
-          this.inlineAlert.showInlineError(res);
-        });
+      },
+      error => {
+        this.inlineAlert.showInlineError(error);
         this.onGoing = false;
         this.forceRefreshView(2000);
-      });
-  }
-
-  handleErrorMessageKey(status: number): string {
-    switch (status) {
-      case 409:
-        return "DESTINATION.CONFLICT_NAME";
-      case 400:
-        return "DESTINATION.INVALID_NAME";
-      default:
-        return "UNKNOWN_ERROR";
-    }
+      }
+    );
   }
 
   onCancel() {
@@ -338,7 +376,6 @@ export class CreateEditEndpointComponent
 
               if (!compareValue(this.formValues, data)) {
                 this.formValues = data;
-                this.inlineAlert.close();
               }
             }
           }
@@ -353,20 +390,36 @@ export class CreateEditEndpointComponent
     }
     for (let prop of Object.keys(this.target)) {
       let field: any = this.initVal[prop];
-      if (!compareValue(field, this.target[prop])) {
-        changes[prop] = this.target[prop];
-        // Number
-        if (typeof field === "number") {
-          changes[prop] = +changes[prop];
-        }
+      if (typeof field !== "object") {
+        if (!compareValue(field, this.target[prop])) {
+          changes[prop] = this.target[prop];
+          // Number
+          if (typeof field === "number") {
+            changes[prop] = +changes[prop];
+          }
 
-        // Trim string value
-        if (typeof field === "string") {
-          changes[prop] = ("" + changes[prop]).trim();
+          // Trim string value
+          if (typeof field === "string") {
+            changes[prop] = ("" + changes[prop]).trim();
+          }
+        }
+      } else {
+        for (let pro of Object.keys(field)) {
+          if (!compareValue(field[pro], this.target[prop][pro])) {
+            changes[pro] = this.target[prop][pro];
+            // Number
+            if (typeof field[pro] === "number") {
+              changes[pro] = +changes[pro];
+            }
+
+            // Trim string value
+            if (typeof field[pro] === "string") {
+              changes[pro] = ("" + changes[pro]).trim();
+            }
+          }
         }
       }
     }
-
     return changes;
   }
 }

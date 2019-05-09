@@ -75,13 +75,32 @@ export interface Tag extends Base {
  * extends {Base}
  */
 export interface Endpoint extends Base {
-  endpoint: string;
-  name: string;
-  username?: string;
-  password?: string;
+  credential: {
+    access_key?: string,
+    access_secret?: string,
+    type: string;
+  };
+  description: string;
   insecure: boolean;
-  type: number;
-  [key: string]: any;
+  name: string;
+  type: string;
+  url: string;
+}
+
+export interface PingEndpoint extends Base {
+  access_key?: string;
+  access_secret?: string;
+  description: string;
+  insecure: boolean;
+  name: string;
+  type: string;
+  url: string;
+}
+
+export interface Filter {
+   type: string;
+   style: string;
+   values ?: string[];
 }
 
 /**
@@ -97,33 +116,35 @@ export interface ReplicationRule extends Base {
   id?: number;
   name: string;
   description: string;
-  projects: Project[];
-  targets: Endpoint[];
   trigger: Trigger;
   filters: Filter[];
-  replicate_existing_image_now?: boolean;
-  replicate_deletion?: boolean;
+  deletion?: boolean;
+  src_registry?: any;
+  dest_registry?: any;
+  src_namespaces: string [];
+  dest_namespace?: string;
+  enabled: boolean;
+  override: boolean;
 }
 
 export class Filter {
-  kind: string;
-  pattern: string;
-  constructor(kind: string, pattern: string) {
-    this.kind = kind;
-    this.pattern = pattern;
+  type: string;
+  value?: string;
+  constructor(type: string) {
+    this.type = type;
   }
 }
 
 export class Trigger {
-  kind: string;
-  schedule_param:
+  type: string;
+  trigger_settings:
     | any
     | {
       [key: string]: any | any[];
     };
-  constructor(kind: string, param: any | { [key: string]: any | any[] }) {
-    this.kind = kind;
-    this.schedule_param = param;
+  constructor(type: string, param: any | { [key: string]: any | any[] }) {
+    this.type = type;
+    this.trigger_settings = param;
   }
 }
 
@@ -146,13 +167,34 @@ export interface ReplicationJob {
  */
 export interface ReplicationJobItem extends Base {
   [key: string]: any | any[];
+  id: number;
   status: string;
-  repository: string;
   policy_id: number;
-  operation: string;
-  tags: string;
+  trigger: string;
+  total: number;
+  failed: number;
+  succeed: number;
+  in_progress: number;
+  stopped: number;
 }
 
+/**
+ * Interface for replication tasks item.
+ *
+ **
+ * interface ReplicationTasks
+ */
+export interface ReplicationTasks extends Base {
+  [key: string]: any | any[];
+  operation: string;
+  id: number;
+  execution_id: number;
+  resource_type: string;
+  src_resource: string;
+  dst_resource: string;
+  job_id: number;
+  status: string;
+}
 /**
  * Interface for storing metadata of response.
  *
@@ -215,6 +257,7 @@ export interface SystemInfo {
   harbor_version?: string;
   clair_vulnerability_status?: ClairDBStatus;
   next_scan_all?: number;
+  external_url?: string;
 }
 
 /**

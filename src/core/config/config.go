@@ -80,11 +80,14 @@ func Init() error {
 	return nil
 }
 
-// InitWithSettings init config with predefined configs
-func InitWithSettings(cfgs map[string]interface{}) {
+// InitWithSettings init config with predefined configs, and optionally overwrite the keyprovider
+func InitWithSettings(cfgs map[string]interface{}, kp ...comcfg.KeyProvider) {
 	Init()
 	cfgMgr = comcfg.NewInMemoryManager()
 	cfgMgr.UpdateConfig(cfgs)
+	if len(kp) > 0 {
+		keyProvider = kp[0]
+	}
 }
 
 func initKeyProvider() {
@@ -113,7 +116,7 @@ func initProjectManager() error {
 		}
 		pool := x509.NewCertPool()
 		if ok := pool.AppendCertsFromPEM(content); !ok {
-			return fmt.Errorf("failed to append cert content into cert pool")
+			return fmt.Errorf("failed to append cert content into cert worker")
 		}
 		AdmiralClient = &http.Client{
 			Transport: &http.Transport{
@@ -165,7 +168,11 @@ func Upload(cfg map[string]interface{}) error {
 
 // GetSystemCfg returns the system configurations
 func GetSystemCfg() (map[string]interface{}, error) {
-	return cfgMgr.GetAll(), nil
+	sysCfg := cfgMgr.GetAll()
+	if len(sysCfg) == 0 {
+		return nil, errors.New("can not load system config, the database might be down")
+	}
+	return sysCfg, nil
 }
 
 // AuthMode ...
@@ -173,6 +180,7 @@ func AuthMode() (string, error) {
 	err := cfgMgr.Load()
 	if err != nil {
 		log.Errorf("failed to load config, error %v", err)
+		return "db_auth", err
 	}
 	return cfgMgr.Get(common.AUTHMode).GetString(), nil
 }
@@ -473,7 +481,7 @@ func HTTPAuthProxySetting() (*models.HTTPAuthProxy, error) {
 	return &models.HTTPAuthProxy{
 		Endpoint:            cfgMgr.Get(common.HTTPAuthProxyEndpoint).GetString(),
 		TokenReviewEndpoint: cfgMgr.Get(common.HTTPAuthProxyTokenReviewEndpoint).GetString(),
-		SkipCertVerify:      cfgMgr.Get(common.HTTPAuthProxySkipCertVerify).GetBool(),
+		VerifyCert:          cfgMgr.Get(common.HTTPAuthProxyVerifyCert).GetBool(),
 		AlwaysOnBoard:       cfgMgr.Get(common.HTTPAuthProxyAlwaysOnboard).GetBool(),
 	}, nil
 
@@ -493,12 +501,12 @@ func OIDCSetting() (*models.OIDCSetting, error) {
 	}
 
 	return &models.OIDCSetting{
-		Name:           cfgMgr.Get(common.OIDCName).GetString(),
-		Endpoint:       cfgMgr.Get(common.OIDCEndpoint).GetString(),
-		SkipCertVerify: cfgMgr.Get(common.OIDCSkipCertVerify).GetBool(),
-		ClientID:       cfgMgr.Get(common.OIDCCLientID).GetString(),
-		ClientSecret:   cfgMgr.Get(common.OIDCClientSecret).GetString(),
-		RedirectURL:    extEndpoint + common.OIDCCallbackPath,
-		Scope:          scope,
+		Name:         cfgMgr.Get(common.OIDCName).GetString(),
+		Endpoint:     cfgMgr.Get(common.OIDCEndpoint).GetString(),
+		VerifyCert:   cfgMgr.Get(common.OIDCVerifyCert).GetBool(),
+		ClientID:     cfgMgr.Get(common.OIDCCLientID).GetString(),
+		ClientSecret: cfgMgr.Get(common.OIDCClientSecret).GetString(),
+		RedirectURL:  extEndpoint + common.OIDCCallbackPath,
+		Scope:        scope,
 	}, nil
 }

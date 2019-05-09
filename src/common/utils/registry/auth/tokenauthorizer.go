@@ -193,7 +193,7 @@ func parseScopes(req *http.Request) ([]*token.ResourceActions, error) {
 		// base
 		scope = nil
 	} else {
-		// unknow
+		// unknown
 		return scopes, fmt.Errorf("can not parse scope from the request: %s %s", req.Method, req.URL.Path)
 	}
 
@@ -205,7 +205,7 @@ func parseScopes(req *http.Request) ([]*token.ResourceActions, error) {
 	for _, s := range scopes {
 		strs = append(strs, scopeString(s))
 	}
-	log.Debugf("scopses parsed from request: %s", strings.Join(strs, " "))
+	log.Debugf("scopes parsed from request: %s", strings.Join(strs, " "))
 
 	return scopes, nil
 }
@@ -278,7 +278,7 @@ func NewStandardTokenAuthorizer(client *http.Client, credential Credential,
 	// 1. performance issue
 	// 2. the realm field returned by registry is an IP which can not reachable
 	// inside Harbor
-	if len(customizedTokenService) > 0 {
+	if len(customizedTokenService) > 0 && len(customizedTokenService[0]) > 0 {
 		generator.realm = customizedTokenService[0]
 	}
 

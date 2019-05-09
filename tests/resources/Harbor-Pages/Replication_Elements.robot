@@ -23,7 +23,7 @@ ${policy_enable_checkbox}  //input[@id='policy_enable']/../label
 ${policy_endpoint_checkbox}  //input[@id='check_new']/../label
 ${destination_name_xpath}  //*[@id='destination_name']
 ${destination_url_xpath}  //*[@id='destination_url']
-${destination_username_xpath}  //*[@id='destination_username']
+${destination_username_xpath}    //*[@id='destination_access_key']
 ${destination_password_xpath}  //*[@id='destination_password']
 ${replication_save_xpath}  //button[contains(.,'OK')]
 ${replication_xpath}  //clr-vertical-nav-group-children/a[contains(.,'Replication')]
@@ -31,9 +31,8 @@ ${destination_insecure_xpath}  //label[@id='destination_insecure_checkbox']
 
 ${new_replication-rule_button}  //button[contains(.,'New Replication Rule')]
 ${link_to_registries}  //clr-modal//span[contains(.,'Endpoint')]
-${new_endpoint_button}  //hbr-endpoint//button[contains(.,'New')]
+${new_endpoint_button}  //hbr-endpoint//button[contains(.,'New Endpoint')]
 ${rule_name}  //input[@id='ruleName']
-${source_project}    //input[@value='name']
 ${source_image_filter_add}  //hbr-create-edit-rule/clr-modal//clr-icon[@id='add-label-list']
 ${source_iamge_repo_filter}  //hbr-create-edit-rule//section/div[4]/div/div[1]/div/label/input
 ${source_image_tag_filter}  //hbr-create-edit-rule//section/div[4]/div/div[2]/div/label/input
@@ -60,3 +59,22 @@ ${dialog_delete}  //clr-modal//button[contains(.,'DELETE')]
 ${dialog_replicate}  //clr-modal//button[contains(.,'REPLICATE')]
 ${action_bar_replicate}  //button[contains(.,'Replicate')]
 ${rule_save_button}  //button[contains(.,'SAVE')]
+${provider_selector}    //*[@id='adapter']
+${replication_mode_radio_push}    //clr-main-container//hbr-create-edit-rule//label[contains(.,'Push-based')]
+${replication_mode_radio_pull}    //clr-main-container//hbr-create-edit-rule//label[contains(.,'Pull-based')]
+${source_project}    //input[@id='filter_name']
+${rule_resource_selector}    //*[@id='select_resource']
+${trigger_mode_selector}    //*[@id='ruleTrigger']
+${dest_namespace_xpath}    //*[@id='dest_namespace']
+${new_replication_rule_id}    //*[@id='new_replication_rule_id']
+${edit_replication_rule_id}    //*[@id='edit_replication_rule_id']
+${delete_replication_rule_id}    //*[@id='delete_replication_rule_id']
+${replication_exec_id}    //*[@id='replication_exe_id']
+${replication_task_line_1}    //clr-datagrid//clr-dg-row/div/div[2]//clr-checkbox-wrapper/label[1]
+${filter_tag}    //*[@id='filter_tag']
+${is_overide_xpath}    //label[contains(.,'Replace the destination resources if name exists')]
+${enable_rule_xpath}    //label[contains(.,'Enable rule')]
+${targetCron_id}    //*[@id='targetCron']
+
+
+

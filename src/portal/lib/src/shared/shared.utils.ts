@@ -23,6 +23,13 @@ export const errorHandler = function (error: any): string {
     if (!error) {
         return "UNKNOWN_ERROR";
     }
+    try {
+        return JSON.parse(error._body).message;
+    } catch (err) { }
+    if (error._body && error._body.message) {
+        return error._body.message;
+    }
+
     if (!(error.statusCode || error.status)) {
         // treat as string message
         return '' + error;
@@ -47,7 +54,6 @@ export const errorHandler = function (error: any): string {
         }
     }
 };
-
 export const extractJson = (res: Response) => {
     if (res.text() === '') {
         return [];

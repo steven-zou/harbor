@@ -1,4 +1,4 @@
-version: '2'
+version: '2.3'
 services:
   log:
     image: goharbor/harbor-log:{{version}}
@@ -33,8 +33,11 @@ services:
       - {{data_volume}}/registry:/storage:z
       - ./common/config/registry/:/etc/registry/:z
       - {{data_volume}}/secret/registry/root.crt:/etc/registry/root.crt:z
-{%if registry_custom_ca_bundle_storage_path %}
-      - {{data_volume}}/secret/common/custom-ca-bundle.crt:/harbor_cust_cert/custom-ca-bundle.crt:z
+{% if gcs_keyfile %}
+      - {{gcs_keyfile}}:/etc/registry/gcs.key
+{% endif %}
+{%if registry_custom_ca_bundle_path %}
+      - {{registry_custom_ca_bundle_path}}:/harbor_cust_cert/custom-ca-bundle.crt:z
 {% endif %}
     networks:
       - harbor
@@ -65,6 +68,9 @@ services:
       - {{data_volume}}/registry:/storage:z
       - ./common/config/registry/:/etc/registry/:z
       - ./common/config/registryctl/config.yml:/etc/registryctl/config.yml:z
+{%if registry_custom_ca_bundle_path %}
+      - {{registry_custom_ca_bundle_path}}:/harbor_cust_cert/custom-ca-bundle.crt:z
+{% endif %}
     networks:
       - harbor
     dns_search: .
@@ -115,7 +121,6 @@ services:
     container_name: harbor-core
     env_file:
       - ./common/config/core/env
-      - ./common/config/core/config_env
     restart: always
     cap_drop:
       - ALL
@@ -124,12 +129,16 @@ services:
       - SETUID
     volumes:
       - ./common/config/core/app.conf:/etc/core/app.conf:z
-      - ./common/config/core/certificates/:/etc/core/certificates/:z
       - {{data_volume}}/secret/core/private_key.pem:/etc/core/private_key.pem:z
       - {{data_volume}}/secret/keys/secretkey:/etc/core/key:z
       - {{data_volume}}/ca_download/:/etc/core/ca/:z
       - {{data_volume}}/psc/:/etc/core/token/:z
       - {{data_volume}}/:/data/:z
+{% if uaa_ca_file %}
+      - type: bind
+        source: {{uaa_ca_file}}
+        target: /etc/core/certificates/uaa_ca.pem
+{% endif %}
     networks:
       harbor:
 {% if with_notary %}
@@ -247,8 +256,8 @@ services:
     volumes:
       - ./common/config/nginx:/etc/nginx:z
 {% if protocol == 'https' %}
-      - {{data_volume}}/secret/nginx/server.key:/etc/nginx/cert/server.key
-      - {{data_volume}}/secret/nginx/server.crt:/etc/nginx/cert/server.crt
+      - {{cert_key_path}}:/etc/nginx/cert/server.key:z
+      - {{cert_path}}:/etc/nginx/cert/server.crt:z
 {% endif %}
     networks:
       - harbor
@@ -257,9 +266,13 @@ services:
 {% endif %}
     dns_search: .
     ports:
-      - 80:80
-      - 443:443
+      - {{http_port}}:80
+{% if protocol == 'https' %}
+      - {{https_port}}:443
+{% endif %}
+{% if with_notary %}
       - 4443:4443
+{% endif %}
     depends_on:
       - postgresql
       - registry
@@ -337,12 +350,12 @@ services:
       - postgresql
     volumes:
       - ./common/config/clair/config.yaml:/etc/clair/config.yaml:z
-{%if registry_custom_ca_bundle_storage_path %}
-      - {{data_volume}}/secret/common/custom-ca-bundle.crt:/harbor_cust_cert/custom-ca-bundle.crt:z
+{%if registry_custom_ca_bundle_path %}
+      - {{registry_custom_ca_bundle_path}}:/harbor_cust_cert/custom-ca-bundle.crt:z
 {% endif %}
     logging:
       driver: "syslog"
-      options:  
+      options:
         syslog-address: "tcp://127.0.0.1:1514"
         tag: "clair"
     env_file:
@@ -368,8 +381,11 @@ services:
     volumes:
       - {{data_volume}}/chart_storage:/chart_storage:z
       - ./common/config/chartserver:/etc/chartserver:z
-{%if registry_custom_ca_bundle_storage_path %}
-      - {{data_volume}}/secret/common/custom-ca-bundle.crt:/harbor_cust_cert/custom-ca-bundle.crt:z
+{% if gcs_keyfile %}
+      - {{gcs_keyfile}}:/etc/registry/gcs.key
+{% endif %}
+{%if registry_custom_ca_bundle_path %}
+      - {{registry_custom_ca_bundle_path}}:/harbor_cust_cert/custom-ca-bundle.crt:z
 {% endif %}
     logging:
       driver: "syslog"

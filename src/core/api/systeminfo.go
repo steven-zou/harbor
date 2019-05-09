@@ -15,12 +15,14 @@
 package api
 
 import (
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
 
+	"fmt"
 	"github.com/goharbor/harbor/src/common"
 	"github.com/goharbor/harbor/src/common/dao"
 	clairdao "github.com/goharbor/harbor/src/common/dao/clair"
@@ -95,6 +97,7 @@ type GeneralInfo struct {
 	AuthMode                    string                           `json:"auth_mode"`
 	AuthProxySettings           *models.HTTPAuthProxy            `json:"authproxy_settings,omitempty"`
 	RegistryURL                 string                           `json:"registry_url"`
+	ExtURL                      string                           `json:"external_url"`
 	ProjectCreationRestrict     string                           `json:"project_creation_restriction"`
 	SelfRegistration            bool                             `json:"self_registration"`
 	HasCARoot                   bool                             `json:"has_ca_root"`
@@ -105,28 +108,24 @@ type GeneralInfo struct {
 	WithChartMuseum             bool                             `json:"with_chartmuseum"`
 }
 
-// validate for validating user if an admin.
-func (sia *SystemInfoAPI) validate() {
+// GetVolumeInfo gets specific volume storage info.
+func (sia *SystemInfoAPI) GetVolumeInfo() {
 	if !sia.SecurityCtx.IsAuthenticated() {
-		sia.HandleUnauthorized()
-		sia.StopRun()
+		sia.SendUnAuthorizedError(errors.New("UnAuthorized"))
+		return
 	}
 
 	if !sia.SecurityCtx.IsSysAdmin() {
-		sia.HandleForbidden(sia.SecurityCtx.GetUsername())
-		sia.StopRun()
+		sia.SendForbiddenError(errors.New(sia.SecurityCtx.GetUsername()))
+		return
 	}
-}
-
-// GetVolumeInfo gets specific volume storage info.
-func (sia *SystemInfoAPI) GetVolumeInfo() {
-	sia.validate()
 
 	systeminfo.Init()
 	capacity, err := imagestorage.GlobalDriver.Cap()
 	if err != nil {
 		log.Errorf("failed to get capacity: %v", err)
-		sia.CustomAbort(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+		sia.SendInternalServerError(fmt.Errorf("failed to get capacity: %v", err))
+		return
 	}
 	systemInfo := SystemInfo{
 		HarborStorage: Storage{
@@ -147,10 +146,12 @@ func (sia *SystemInfoAPI) GetCert() {
 		http.ServeFile(sia.Ctx.ResponseWriter, sia.Ctx.Request, defaultRootCert)
 	} else if os.IsNotExist(err) {
 		log.Error("No certificate found.")
-		sia.CustomAbort(http.StatusNotFound, "No certificate found.")
+		sia.SendNotFoundError(errors.New("no certificate found"))
+		return
 	} else {
 		log.Errorf("Unexpected error: %v", err)
-		sia.CustomAbort(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+		sia.SendInternalServerError(fmt.Errorf("Unexpected error: %v", err))
+		return
 	}
 }
 
@@ -159,15 +160,18 @@ func (sia *SystemInfoAPI) GetGeneralInfo() {
 	cfg, err := config.GetSystemCfg()
 	if err != nil {
 		log.Errorf("Error occurred getting config: %v", err)
-		sia.CustomAbort(http.StatusInternalServerError, "Unexpected error")
+		sia.SendInternalServerError(fmt.Errorf("Unexpected error: %v", err))
+		return
 	}
+	extURL := cfg[common.ExtEndpoint].(string)
 	var registryURL string
-	if l := strings.Split(cfg[common.ExtEndpoint].(string), "://"); len(l) > 1 {
+	if l := strings.Split(extURL, "://"); len(l) > 1 {
 		registryURL = l[1]
 	} else {
 		registryURL = l[0]
 	}
 	_, caStatErr := os.Stat(defaultRootCert)
+	enableCADownload := caStatErr == nil && strings.HasPrefix(extURL, "https://")
 	harborVersion := sia.getVersion()
 	info := GeneralInfo{
 		AdmiralEndpoint:             utils.SafeCastString(cfg[common.AdmiralEndpoint]),
@@ -177,8 +181,9 @@ func (sia *SystemInfoAPI) GetGeneralInfo() {
 		AuthMode:                    utils.SafeCastString(cfg[common.AUTHMode]),
 		ProjectCreationRestrict:     utils.SafeCastString(cfg[common.ProjectCreationRestriction]),
 		SelfRegistration:            utils.SafeCastBool(cfg[common.SelfRegistration]),
+		ExtURL:                      extURL,
 		RegistryURL:                 registryURL,
-		HasCARoot:                   caStatErr == nil,
+		HasCARoot:                   enableCADownload,
 		HarborVersion:               harborVersion,
 		RegistryStorageProviderName: utils.SafeCastString(cfg[common.RegistryStorageProviderName]),
 		ReadOnly:                    config.ReadOnly(),
