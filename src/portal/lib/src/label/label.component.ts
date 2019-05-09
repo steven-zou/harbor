@@ -34,7 +34,8 @@ import { TranslateService } from "@ngx-translate/core";
 import { ConfirmationDialogComponent } from "../confirmation-dialog/confirmation-dialog.component";
 import { operateChanges, OperateInfo, OperationState } from "../operation/operate";
 import { OperationService } from "../operation/operation.service";
-import { map, catchError } from "rxjs/operators";
+import { map, catchError, finalize } from "rxjs/operators";
+import { errorHandler as errorHandFn } from "../shared/shared.utils";
 import { Observable, throwError as observableThrowError, forkJoin } from "rxjs";
 @Component({
     selector: "hbr-label",
@@ -75,14 +76,14 @@ export class LabelComponent implements OnInit {
         this.loading = true;
         this.selectedRow = [];
         this.targetName = "";
-        this.labelService.getLabels(scope, this.projectId, name)
+        this.labelService.getLabels(scope, this.projectId, name).pipe(finalize(() => {
+            this.loading = false;
+            this.forceRefreshView(2000);
+        }))
             .subscribe(targets => {
                 this.targets = targets || [];
-                this.loading = false;
-                this.forceRefreshView(2000);
             }, error => {
                 this.errorHandler.error(error);
-                this.loading = false;
             });
     }
 
@@ -162,11 +163,13 @@ export class LabelComponent implements OnInit {
                         .subscribe(res => {
                             operateChanges(operMessage, OperationState.success);
                         });
-                }), catchError( error => {
-                        return this.translateService.get('BATCH.DELETED_FAILURE').pipe(map(res => {
-                            operateChanges(operMessage, OperationState.failure, res);
-                        }));
-                    }));
+                }), catchError(error => {
+                    const message = errorHandFn(error);
+                    this.translateService.get(message).subscribe(res =>
+                        operateChanges(operMessage, OperationState.failure, res)
+                      );
+                    return observableThrowError(message);
+                }));
     }
 
     // Forcely refresh the view

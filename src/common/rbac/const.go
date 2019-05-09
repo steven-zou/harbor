@@ -18,9 +18,8 @@ package rbac
 const (
 	ActionAll = Action("*") // action match any other actions
 
-	ActionPull     = Action("pull")      // pull repository tag
-	ActionPush     = Action("push")      // push repository tag
-	ActionPushPull = Action("push+pull") // compatible with security all perm of project
+	ActionPull = Action("pull") // pull repository tag
+	ActionPush = Action("push") // push repository tag
 
 	// create, read, update, delete, list actions compatible with restful api methods
 	ActionCreate = Action("create")
@@ -42,8 +41,10 @@ const (
 	ResourceLog                        = Resource("log")
 	ResourceMember                     = Resource("member")
 	ResourceMetadata                   = Resource("metadata")
-	ResourceReplication                = Resource("replication")
-	ResourceReplicationJob             = Resource("replication-job")
+	ResourceReplication                = Resource("replication")     // TODO remove
+	ResourceReplicationJob             = Resource("replication-job") // TODO remove
+	ResourceReplicationExecution       = Resource("replication-execution")
+	ResourceReplicationTask            = Resource("replication-task")
 	ResourceRepository                 = Resource("repository")
 	ResourceRepositoryLabel            = Resource("repository-label")
 	ResourceRepositoryTag              = Resource("repository-tag")

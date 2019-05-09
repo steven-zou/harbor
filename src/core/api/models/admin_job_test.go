@@ -26,7 +26,7 @@ import (
 	"strings"
 )
 
-var adminServerTestConfig = map[string]interface{}{
+var testConfig = map[string]interface{}{
 	common.DefaultCoreEndpoint: "test",
 }
 
@@ -34,7 +34,7 @@ func TestMain(m *testing.M) {
 
 	test.InitDatabaseFromEnv()
 	config.Init()
-	config.Upload(adminServerTestConfig)
+	config.Upload(testConfig)
 	os.Exit(m.Run())
 
 }
@@ -136,4 +136,21 @@ func TestCronString(t *testing.T) {
 	}
 	cronStr := adminjob.CronString()
 	assert.True(t, strings.EqualFold(cronStr, "{\"type\":\"Daily\",\"Cron\":\"20 3 0 * * *\"}"))
+}
+
+func TestConvertSchedule(t *testing.T) {
+	schedule1 := "{\"type\":\"Daily\",\"cron\":\"20 3 0 * * *\"}"
+	converted1, err1 := ConvertSchedule(schedule1)
+	assert.Nil(t, err1)
+	assert.Equal(t, converted1.Cron, "20 3 0 * * *")
+
+	schedule2 := "{\"type\":\"Daily\",\"weekday\":0,\"offtime\":57720}"
+	converted2, err2 := ConvertSchedule(schedule2)
+	assert.Nil(t, err2)
+	assert.Equal(t, converted2.Cron, "0 2 16 * * *")
+
+	schedule3 := "{\"parameter\":{\"daily_time\":57720},\"type\":\"daily\"}"
+	converted3, err3 := ConvertSchedule(schedule3)
+	assert.Nil(t, err3)
+	assert.Equal(t, converted3.Cron, "0 2 16 * * *")
 }

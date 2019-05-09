@@ -27,10 +27,11 @@ import (
 	"github.com/goharbor/harbor/src/common/utils/log"
 	"github.com/goharbor/harbor/src/core/api"
 	"github.com/goharbor/harbor/src/core/config"
-	"github.com/goharbor/harbor/src/core/notifier"
 	coreutils "github.com/goharbor/harbor/src/core/utils"
-	rep_notification "github.com/goharbor/harbor/src/replication/event/notification"
-	"github.com/goharbor/harbor/src/replication/event/topic"
+	"github.com/goharbor/harbor/src/replication"
+	"github.com/goharbor/harbor/src/replication/adapter"
+	rep_event "github.com/goharbor/harbor/src/replication/event"
+	"github.com/goharbor/harbor/src/replication/model"
 )
 
 // NotificationHandler handles request on /service/notifications/, which listens to registry's events.
@@ -92,35 +93,47 @@ func (n *NotificationHandler) Post() {
 		}()
 
 		if action == "push" {
-			go func() {
-				exist := dao.RepositoryExists(repository)
-				if exist {
-					return
-				}
-				log.Debugf("Add repository %s into DB.", repository)
-				repoRecord := models.RepoRecord{
-					Name:      repository,
-					ProjectID: pro.ProjectID,
-				}
-				if err := dao.AddRepository(repoRecord); err != nil {
-					log.Errorf("Error happens when adding repository: %v", err)
-				}
-			}()
+			// discard the notification without tag.
+			if tag != "" {
+				go func() {
+					exist := dao.RepositoryExists(repository)
+					if exist {
+						return
+					}
+					log.Debugf("Add repository %s into DB.", repository)
+					repoRecord := models.RepoRecord{
+						Name:      repository,
+						ProjectID: pro.ProjectID,
+					}
+					if err := dao.AddRepository(repoRecord); err != nil {
+						log.Errorf("Error happens when adding repository: %v", err)
+					}
+				}()
+			}
+
 			if !coreutils.WaitForManifestReady(repository, tag, 5) {
 				log.Errorf("Manifest for image %s:%s is not ready, skip the follow up actions.", repository, tag)
 				return
 			}
 
+			// TODO: handle image delete event and chart event
 			go func() {
-				image := repository + ":" + tag
-				err := notifier.Publish(topic.ReplicationEventTopicOnPush, rep_notification.OnPushNotification{
-					Image: image,
-				})
-				if err != nil {
-					log.Errorf("failed to publish on push topic for resource %s: %v", image, err)
-					return
+				e := &rep_event.Event{
+					Type: rep_event.EventTypeImagePush,
+					Resource: &model.Resource{
+						Type: model.ResourceTypeImage,
+						Metadata: &model.ResourceMetadata{
+							Repository: &model.Repository{
+								Name: repository,
+								// TODO filling the metadata
+							},
+							Vtags: []string{tag},
+						},
+					},
 				}
-				log.Debugf("the on push topic for resource %s published", image)
+				if err := replication.EventHandler.Handle(e); err != nil {
+					log.Errorf("failed to handle event: %v", err)
+				}
 			}()
 
 			if autoScanEnabled(pro) {
@@ -173,15 +186,16 @@ func filterEvents(notification *models.Notification) ([]*models.Event, error) {
 }
 
 func checkEvent(event *models.Event) bool {
-	// pull and push manifest
-	if strings.ToLower(strings.TrimSpace(event.Request.UserAgent)) != "harbor-registry-client" && (event.Action == "pull" || event.Action == "push") {
+	// push action
+	if event.Action == "push" {
 		return true
 	}
-	// push manifest by job-service
-	if strings.ToLower(strings.TrimSpace(event.Request.UserAgent)) == "harbor-registry-client" && event.Action == "push" {
-		return true
+	// if it is pull action, check the user-agent
+	userAgent := strings.ToLower(strings.TrimSpace(event.Request.UserAgent))
+	if userAgent == "harbor-registry-client" || userAgent == strings.ToLower(adapter.UserAgentReplication) {
+		return false
 	}
-	return false
+	return true
 }
 
 func autoScanEnabled(project *models.Project) bool {

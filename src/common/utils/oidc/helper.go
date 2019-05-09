@@ -41,14 +41,14 @@ type providerHelper struct {
 }
 
 type endpoint struct {
-	url            string
-	skipCertVerify bool
+	url        string
+	VerifyCert bool
 }
 
 func (p *providerHelper) get() (*gooidc.Provider, error) {
 	if p.instance.Load() != nil {
 		s := p.setting.Load().(models.OIDCSetting)
-		if s.Endpoint != p.ep.url || s.SkipCertVerify != p.ep.skipCertVerify { // relevant settings have changed, need to re-create provider.
+		if s.Endpoint != p.ep.url || s.VerifyCert != p.ep.VerifyCert { // relevant settings have changed, need to re-create provider.
 			if err := p.create(); err != nil {
 				return nil, err
 			}
@@ -90,24 +90,15 @@ func (p *providerHelper) create() error {
 		return errors.New("the configuration is not loaded")
 	}
 	s := p.setting.Load().(models.OIDCSetting)
-	var client *http.Client
-	if s.SkipCertVerify {
-		client = &http.Client{
-			Transport: insecureTransport,
-		}
-	} else {
-		client = &http.Client{}
-	}
-	ctx := context.Background()
-	gooidc.ClientContext(ctx, client)
+	ctx := clientCtx(context.Background(), s.VerifyCert)
 	provider, err := gooidc.NewProvider(ctx, s.Endpoint)
 	if err != nil {
 		return fmt.Errorf("failed to create OIDC provider, error: %v", err)
 	}
 	p.instance.Store(provider)
 	p.ep = endpoint{
-		url:            s.Endpoint,
-		skipCertVerify: s.SkipCertVerify,
+		url:        s.Endpoint,
+		VerifyCert: s.VerifyCert,
 	}
 	return nil
 }
@@ -122,7 +113,7 @@ var insecureTransport = &http.Transport{
 
 // Token wraps the attributes of a oauth2 token plus the attribute of ID token
 type Token struct {
-	*oauth2.Token
+	oauth2.Token
 	IDToken string `json:"id_token"`
 }
 
@@ -157,8 +148,8 @@ func AuthCodeURL(state string) (string, error) {
 		log.Errorf("Failed to get OAuth configuration, error: %v", err)
 		return "", err
 	}
-	if strings.HasPrefix(conf.Endpoint.AuthURL, googleEndpoint) {
-		return conf.AuthCodeURL(state, oauth2.AccessTypeOffline), nil
+	if strings.HasPrefix(conf.Endpoint.AuthURL, googleEndpoint) { // make sure the refresh token will be returned
+		return conf.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("prompt", "consent")), nil
 	}
 	return conf.AuthCodeURL(state), nil
 }
@@ -170,11 +161,13 @@ func ExchangeToken(ctx context.Context, code string) (*Token, error) {
 		log.Errorf("Failed to get OAuth configuration, error: %v", err)
 		return nil, err
 	}
+	setting := provider.setting.Load().(models.OIDCSetting)
+	ctx = clientCtx(ctx, setting.VerifyCert)
 	oauthToken, err := oauth.Exchange(ctx, code)
 	if err != nil {
 		return nil, err
 	}
-	return &Token{Token: oauthToken, IDToken: oauthToken.Extra("id_token").(string)}, nil
+	return &Token{Token: *oauthToken, IDToken: oauthToken.Extra("id_token").(string)}, nil
 }
 
 // VerifyToken verifies the ID token based on the OIDC settings
@@ -184,5 +177,40 @@ func VerifyToken(ctx context.Context, rawIDToken string) (*gooidc.IDToken, error
 		return nil, err
 	}
 	verifier := p.Verifier(&gooidc.Config{ClientID: provider.setting.Load().(models.OIDCSetting).ClientID})
+	setting := provider.setting.Load().(models.OIDCSetting)
+	ctx = clientCtx(ctx, setting.VerifyCert)
 	return verifier.Verify(ctx, rawIDToken)
+}
+
+func clientCtx(ctx context.Context, verifyCert bool) context.Context {
+	var client *http.Client
+	if !verifyCert {
+		client = &http.Client{
+			Transport: insecureTransport,
+		}
+	} else {
+		client = &http.Client{}
+	}
+	return gooidc.ClientContext(ctx, client)
+}
+
+// RefreshToken refreshes the token passed in parameter, and return the new token.
+func RefreshToken(ctx context.Context, token *Token) (*Token, error) {
+	oauth, err := getOauthConf()
+	if err != nil {
+		log.Errorf("Failed to get OAuth configuration, error: %v", err)
+		return nil, err
+	}
+	setting := provider.setting.Load().(models.OIDCSetting)
+	ctx = clientCtx(ctx, setting.VerifyCert)
+	ts := oauth.TokenSource(ctx, &token.Token)
+	t, err := ts.Token()
+	if err != nil {
+		return nil, err
+	}
+	it, ok := t.Extra("id_token").(string)
+	if !ok {
+		return nil, fmt.Errorf("failed to get id_token from refresh response")
+	}
+	return &Token{Token: *t, IDToken: it}, nil
 }

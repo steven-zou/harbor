@@ -30,8 +30,15 @@ import (
 	"time"
 )
 
-const refreshDuration = 5 * time.Second
+const refreshDuration = 2 * time.Second
 const userEntryComment = "By Authproxy"
+
+var secureTransport = &http.Transport{}
+var insecureTransport = &http.Transport{
+	TLSClientConfig: &tls.Config{
+		InsecureSkipVerify: true,
+	},
+}
 
 // Auth implements HTTP authenticator the required attributes.
 // The attribute Endpoint is the HTTP endpoint to which the POST request should be issued for authentication
@@ -94,18 +101,11 @@ func (a *Auth) PostAuthenticate(u *models.User) error {
 	return a.OnBoardUser(u)
 }
 
-// SearchUser - TODO: Remove this workaround when #6767 is fixed.
-// When the flag is set it always return the default model without searching
+// SearchUser returns nil as authproxy does not have such capability.
+// When AlwaysOnboard is set it always return the default model.
 func (a *Auth) SearchUser(username string) (*models.User, error) {
-	a.ensure()
-	var queryCondition = models.User{
-		Username: username,
-	}
-	u, err := dao.GetUser(queryCondition)
-	if err != nil {
-		return nil, err
-	}
-	if a.AlwaysOnboard && u == nil {
+	var u *models.User
+	if a.AlwaysOnboard {
 		u = &models.User{Username: username}
 		if err := a.fillInModel(u); err != nil {
 			return nil, err
@@ -132,25 +132,24 @@ func (a *Auth) fillInModel(u *models.User) error {
 func (a *Auth) ensure() error {
 	a.Lock()
 	defer a.Unlock()
+	if a.client == nil {
+		a.client = &http.Client{}
+	}
 	if time.Now().Sub(a.settingTimeStamp) >= refreshDuration {
 		setting, err := config.HTTPAuthProxySetting()
 		if err != nil {
 			return err
 		}
 		a.Endpoint = setting.Endpoint
-		a.SkipCertVerify = setting.SkipCertVerify
+		a.SkipCertVerify = !setting.VerifyCert
 		a.AlwaysOnboard = setting.AlwaysOnBoard
 	}
-	if a.client == nil {
-		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: a.SkipCertVerify,
-			},
-		}
-		a.client = &http.Client{
-			Transport: tr,
-		}
+	if a.SkipCertVerify {
+		a.client.Transport = insecureTransport
+	} else {
+		a.client.Transport = secureTransport
 	}
+
 	return nil
 }
 

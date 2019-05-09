@@ -28,6 +28,7 @@ Resource  VCH-Util.robot
 Resource  Drone-Util.robot
 Resource  Github-Util.robot
 Resource  Harbor-Util.robot
+Resource  Harbor-Pages/Public_Elements.robot
 Resource  Harbor-Pages/HomePage.robot
 Resource  Harbor-Pages/HomePage_Elements.robot
 Resource  Harbor-Pages/Project.robot
@@ -44,6 +45,7 @@ Resource  Harbor-Pages/Project-Retag_Elements.robot
 Resource  Harbor-Pages/Replication.robot
 Resource  Harbor-Pages/Replication_Elements.robot
 Resource  Harbor-Pages/UserProfile.robot
+Resource  Harbor-Pages/UserProfile_Elements.robot
 Resource  Harbor-Pages/Administration-Users.robot
 Resource  Harbor-Pages/Administration-Users_Elements.robot
 Resource  Harbor-Pages/Configuration.robot
@@ -97,6 +99,11 @@ Retry Text Input
     @{param}  Create List  ${element_xpath}  ${text}
     Retry Action Keyword  Text Input  @{param}
 
+Retry Link Click
+    [Arguments]  ${element_xpath}
+    @{param}  Create List  ${element_xpath}
+    Retry Action Keyword  Link Click  @{param}
+
 Retry Checkbox Should Be Selected
     [Arguments]  ${element_xpath}
     @{param}  Create List  ${element_xpath}
@@ -121,6 +128,10 @@ Retry Wait Until Page Not Contains Element
     [Arguments]  ${element_xpath}
     @{param}  Create List  ${element_xpath}
     Retry Action Keyword  Wait Until Page Does Not Contain Element  @{param}
+
+Link Click
+    [Arguments]  ${element_xpath}
+    Click Link  ${element_xpath}
 
 Element Click
     [Arguments]  ${element_xpath}
@@ -176,7 +187,7 @@ Retry Keyword When Error
 Retry Double Keywords When Error
     [Arguments]  ${keyword1}  ${element1}  ${keyword2}  ${element2}
     :For  ${n}  IN RANGE  1  6
-    \    Log To Console  Trying Delete Repo ${n} times ...
+    \    Log To Console  Trying ${keyword1} and ${keyword2} ${n} times ...
     \    ${out1}  Run Keyword And Ignore Error  ${keyword1}  ${element1}
     \    Capture Page Screenshot
     \    ${out2}  Run Keyword And Ignore Error  ${keyword2}  ${element2}

@@ -38,7 +38,7 @@ func initRouters() {
 		beego.Router("/c/reset", &controllers.CommonController{}, "post:ResetPassword")
 		beego.Router("/c/userExists", &controllers.CommonController{}, "post:UserExists")
 		beego.Router("/c/sendEmail", &controllers.CommonController{}, "get:SendResetEmail")
-		beego.Router("/c/oidc/login", &controllers.OIDCController{}, "get:RedirectLogin")
+		beego.Router(common.OIDCLoginPath, &controllers.OIDCController{}, "get:RedirectLogin")
 		beego.Router("/c/oidc/onboard", &controllers.OIDCController{}, "post:Onboard")
 		beego.Router(common.OIDCCallbackPath, &controllers.OIDCController{}, "get:Callback")
 
@@ -53,6 +53,7 @@ func initRouters() {
 		beego.Router("/api/users/:id([0-9]+)/password", &api.UserAPI{}, "put:ChangePassword")
 		beego.Router("/api/users/:id/permissions", &api.UserAPI{}, "get:ListUserPermissions")
 		beego.Router("/api/users/:id/sysadmin", &api.UserAPI{}, "put:ToggleUserAdminRole")
+		beego.Router("/api/users/:id/gen_cli_secret", &api.UserAPI{}, "post:GenCLISecret")
 		beego.Router("/api/usergroups/?:ugid([0-9]+)", &api.UserGroupAPI{})
 		beego.Router("/api/ldap/ping", &api.LdapAPI{}, "post:Ping")
 		beego.Router("/api/ldap/users/search", &api.LdapAPI{}, "get:Search")
@@ -88,9 +89,6 @@ func initRouters() {
 	beego.Router("/api/repositories/*/tags/:tag/manifest", &api.RepositoryAPI{}, "get:GetManifests")
 	beego.Router("/api/repositories/*/signatures", &api.RepositoryAPI{}, "get:GetSignatures")
 	beego.Router("/api/repositories/top", &api.RepositoryAPI{}, "get:GetTopRepos")
-	beego.Router("/api/jobs/replication/", &api.RepJobAPI{}, "get:List;put:StopJobs")
-	beego.Router("/api/jobs/replication/:id([0-9]+)", &api.RepJobAPI{})
-	beego.Router("/api/jobs/replication/:id([0-9]+)/log", &api.RepJobAPI{}, "get:GetLog")
 	beego.Router("/api/jobs/scan/:id([0-9]+)/log", &api.ScanJobAPI{}, "get:GetLog")
 
 	beego.Router("/api/system/gc", &api.GCAPI{}, "get:List")
@@ -99,20 +97,20 @@ func initRouters() {
 	beego.Router("/api/system/gc/schedule", &api.GCAPI{}, "get:Get;put:Put;post:Post")
 	beego.Router("/api/system/scanAll/schedule", &api.ScanAllAPI{}, "get:Get;put:Put;post:Post")
 
-	beego.Router("/api/policies/replication/:id([0-9]+)", &api.RepPolicyAPI{})
-	beego.Router("/api/policies/replication", &api.RepPolicyAPI{}, "get:List")
-	beego.Router("/api/policies/replication", &api.RepPolicyAPI{}, "post:Post")
-	beego.Router("/api/targets/", &api.TargetAPI{}, "get:List")
-	beego.Router("/api/targets/", &api.TargetAPI{}, "post:Post")
-	beego.Router("/api/targets/:id([0-9]+)", &api.TargetAPI{})
-	beego.Router("/api/targets/:id([0-9]+)/policies/", &api.TargetAPI{}, "get:ListPolicies")
-	beego.Router("/api/targets/ping", &api.TargetAPI{}, "post:Ping")
 	beego.Router("/api/logs", &api.LogAPI{})
+
+	beego.Router("/api/replication/adapters", &api.ReplicationAdapterAPI{}, "get:List")
+	beego.Router("/api/replication/executions", &api.ReplicationOperationAPI{}, "get:ListExecutions;post:CreateExecution")
+	beego.Router("/api/replication/executions/:id([0-9]+)", &api.ReplicationOperationAPI{}, "get:GetExecution;put:StopExecution")
+	beego.Router("/api/replication/executions/:id([0-9]+)/tasks", &api.ReplicationOperationAPI{}, "get:ListTasks")
+	beego.Router("/api/replication/executions/:id([0-9]+)/tasks/:tid([0-9]+)/log", &api.ReplicationOperationAPI{}, "get:GetTaskLog")
+
+	beego.Router("/api/replication/policies", &api.ReplicationPolicyAPI{}, "get:List;post:Create")
+	beego.Router("/api/replication/policies/:id([0-9]+)", &api.ReplicationPolicyAPI{}, "get:Get;put:Update;delete:Delete")
 
 	beego.Router("/api/internal/configurations", &api.ConfigAPI{}, "get:GetInternalConfig;put:Put")
 	beego.Router("/api/configurations", &api.ConfigAPI{}, "get:Get;put:Put")
 	beego.Router("/api/statistics", &api.StatisticAPI{})
-	beego.Router("/api/replications", &api.ReplicationAPI{})
 	beego.Router("/api/labels", &api.LabelAPI{}, "post:Post;get:List")
 	beego.Router("/api/labels/:id([0-9]+)", &api.LabelAPI{}, "get:Get;put:Put;delete:Delete")
 	beego.Router("/api/labels/:id([0-9]+)/resources", &api.LabelAPI{}, "get:ListResources")
@@ -128,9 +126,17 @@ func initRouters() {
 	beego.Router("/service/notifications", &registry.NotificationHandler{})
 	beego.Router("/service/notifications/clair", &clair.Handler{}, "post:Handle")
 	beego.Router("/service/notifications/jobs/scan/:id([0-9]+)", &jobs.Handler{}, "post:HandleScan")
-	beego.Router("/service/notifications/jobs/replication/:id([0-9]+)", &jobs.Handler{}, "post:HandleReplication")
 	beego.Router("/service/notifications/jobs/adminjob/:id([0-9]+)", &admin.Handler{}, "post:HandleAdminJob")
+	beego.Router("/service/notifications/jobs/replication/:id([0-9]+)", &jobs.Handler{}, "post:HandleReplicationScheduleJob")
+	beego.Router("/service/notifications/jobs/replication/task/:id([0-9]+)", &jobs.Handler{}, "post:HandleReplicationTask")
 	beego.Router("/service/token", &token.Handler{})
+
+	beego.Router("/api/registries", &api.RegistryAPI{}, "get:List;post:Post")
+	beego.Router("/api/registries/:id([0-9]+)", &api.RegistryAPI{}, "get:Get;put:Put;delete:Delete")
+	beego.Router("/api/registries/ping", &api.RegistryAPI{}, "post:Ping")
+	// we use "0" as the ID of the local Harbor registry, so don't add "([0-9]+)" in the path
+	beego.Router("/api/registries/:id/info", &api.RegistryAPI{}, "get:GetInfo")
+	beego.Router("/api/registries/:id/namespace", &api.RegistryAPI{}, "get:GetNamespace")
 
 	beego.Router("/v2/*", &controllers.RegistryProxy{}, "*:Handle")
 

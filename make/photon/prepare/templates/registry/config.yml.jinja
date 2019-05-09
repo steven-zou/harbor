@@ -1,6 +1,6 @@
 version: 0.1
 log:
-  level: info
+  level: {{log_level}}
   fields:
     service: registry
 storage:
@@ -12,6 +12,10 @@ storage:
       enabled: false
   delete:
     enabled: true
+{% if storage_redirect_disabled %}
+  redirect:
+    disabled: true
+{% endif %}
 redis:
   addr: {{redis_host}}:{{redis_port}}
   password: {{redis_password}}
@@ -37,3 +41,6 @@ notifications:
     timeout: 3000ms
     threshold: 5
     backoff: 1s
+compatibility:
+  schema1:
+    enabled: true
