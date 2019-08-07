@@ -14,6 +14,12 @@
 
 package models
 
+import (
+	"encoding/json"
+
+	"github.com/pkg/errors"
+)
+
 // ScanReport describes the scan report data
 type ScanReport struct {
 	Severity        Severity             `json:"severity"`
@@ -45,4 +51,23 @@ type VulnerabilityItem struct {
 	Description string   `json:"description"`
 	Link        string   `json:"link"`
 	Fixed       string   `json:"fixedVersion,omitempty"`
+}
+
+// FromJSON parses json data
+func (r *ScanReport) FromJSON(jsonData string) error {
+	if len(jsonData) == 0 {
+		return errors.New("empty json data to parse")
+	}
+
+	return json.Unmarshal([]byte(jsonData), r)
+}
+
+// ToJSON marshals endpoint to JSON data
+func (r *ScanReport) ToJSON() (string, error) {
+	data, err := json.Marshal(r)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
 }

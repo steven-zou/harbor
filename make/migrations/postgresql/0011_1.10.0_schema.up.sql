@@ -1,0 +1,26 @@
+CREATE TABLE scanner_endpoint
+(
+    uid VARCHAR(128) PRIMARY KEY NOT NULL,
+    url VARCHAR(256) NOT NULL,
+    auth VARCHAR(16) NULL,
+    access_cred VARCHAR(256) NULL,
+    adapter VARCHAR(128) NOT NULL,
+    disabled BOOLEAN NOT NULL DEFAULT FALSE,
+    is_default BOOLEAN NOT NULL DEFAULT FALSE,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE scanner_result
+(
+    id SERIAL PRIMARY KEY NOT NULL,
+    digest VARCHAR(256) NOT NULL,
+    endpoint_id VARCHAR(512) NOT NULL,
+    vendor VARCHAR(32) NOT NULL,
+    job_id VARCHAR(32),
+    status VARCHAR(16) NOT NULL,
+    status_code INTEGER DEFAULT 0,
+    report JSONB,
+    start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    end_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)

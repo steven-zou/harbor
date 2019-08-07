@@ -14,10 +14,30 @@
 
 package models
 
-// ScanResult assembles the related data from the scan job
-// and check in to the interested parties
-type ScanResult struct {
-	Request  *ScanRequest `json:"request"`
-	Endpoint *Endpoint    `json:"endpoint"`
-	Report   *ScanReport  `json:"report"`
+import "time"
+
+// Result of scan
+type Result struct {
+	ID         int64     `orm:"pk;auto;column(id)"`
+	Digest     string    `orm:"column(digest)"`
+	EndpointID string    `orm:"column(endpoint_id)"`
+	Vendor     string    `orm:"column(vendor)"`
+	JobID      string    `orm:"column(job_id)"`
+	Status     string    `orm:"column(status)"`
+	StatusCode int       `orm:"column(status_code)"`
+	Report     string    `orm:"column(report);type(json)"`
+	StartTime  time.Time `orm:"column(start_time);auto_now_add;type(datetime)"`
+	EndTime    time.Time `orm:"column(end_time);type(datetime)"`
+}
+
+// TableName for Result
+func (r *Result) TableName() string {
+	return "scanner_result"
+}
+
+// TableUnique for Result
+func (r *Result) TableUnique() [][]string {
+	return [][]string{
+		{"digest", "endpoint_id"},
+	}
 }

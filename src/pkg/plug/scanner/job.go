@@ -68,7 +68,10 @@ func (j *Job) Run(ctx job.Context, params job.Parameters) error {
 
 	myLogger.Infof("Scan artifact:\n %#v\n through scanner:\n %#v", req, e)
 
-	client := NewClient(e)
+	client, err := NewClient(e)
+	if err != nil {
+		return errors.Wrap(err, "run scan job")
+	}
 	resp, err := client.Scan(req)
 	if err != nil {
 		return errors.Wrap(err, "run scan job")
@@ -102,22 +105,16 @@ CHECK:
 	}
 
 	// check in report
-	result := &models.ScanResult{
-		Report:   report,
-		Request:  req,
-		Endpoint: e,
-	}
-
-	resData, err := json.Marshal(result)
+	resData, err := json.Marshal(report)
 	if err != nil {
-		return errors.Wrap(err, "scan job: marshal scan result")
+		return errors.Wrap(err, "scan job: marshal report to JSON")
 	}
 
 	if err := ctx.Checkin(string(resData)); err != nil {
 		return errors.Wrap(err, "scan job: check in scan result")
 	}
 
-	myLogger.Debugf("scan report:\n %#v", report)
+	myLogger.Infof("Scan report:\n %s", string(resData))
 
 	return nil
 }

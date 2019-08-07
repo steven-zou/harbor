@@ -14,11 +14,46 @@
 
 package models
 
+import (
+	"reflect"
+
+	"github.com/pkg/errors"
+)
+
 // Artifact to be scanned
 type Artifact struct {
-	Namespace  string `json:"namespace"`
-	Repository string `json:"repository"`
-	Tag        string `json:"tag"`
-	Digest     string `json:"digest"`
-	Kind       string `json:"kind"`
+	NamespaceID int64  `json:"namespaceId"`
+	Namespace   string `json:"namespace"`
+	Repository  string `json:"repository"`
+	Tag         string `json:"tag"`
+	Digest      string `json:"digest"`
+	Kind        string `json:"kind"`
+}
+
+// Validate artifact
+func (art *Artifact) Validate() error {
+	val := reflect.ValueOf(art).Elem()
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		fieldType := val.Type().Field(i)
+
+		if field.Interface() == nil {
+			return errors.Errorf("missing '%s' in artifact", fieldType.Name)
+		}
+
+		switch field.Type().Kind() {
+		case reflect.String:
+			str, ok := field.Interface().(string)
+			if !ok || len(str) == 0 {
+				return errors.Errorf("malformed string '%s' in artifact", fieldType.Name)
+			}
+		case reflect.Int64:
+			num, ok := field.Interface().(int64)
+			if !ok || num <= 0 {
+				return errors.Errorf("malformed int64 '%s' in artifact", fieldType.Name)
+			}
+		}
+	}
+
+	return nil
 }

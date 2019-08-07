@@ -24,11 +24,19 @@ import (
 // Endpoint of the scanner adapter service
 type Endpoint struct {
 	UUID             string    `orm:"pk;column(uid)" json:"uid"`
-	URL              string    `orm:"unique;size(1024)" json:"url"`
-	AccessCredential string    `orm:"null" json:"accessCredential,omitempty"`
-	Adapter          string    `json:"adapter"`
-	CreateTime       time.Time `orm:"auto_now_add;type(datetime)" json:"createTime"`
-	UpdateTime       time.Time `orm:"auto_now;type(datetime)" json:"updateTime"`
+	URL              string    `orm:"column(url);unique;size(1024)" json:"url"`
+	Auth             string    `orm:"column(auth)" json:"auth"`
+	AccessCredential string    `orm:"column(access_cred);null" json:"accessCredential,omitempty"`
+	Adapter          string    `orm:"column(adapter)" json:"adapter"`
+	Disabled         bool      `orm:"column(disabled);default(true)" json:"disabled"`
+	IsDefault        bool      `orm:"column(is_default);default(false)" json:"isDefault"`
+	CreateTime       time.Time `orm:"column(create_time);auto_now_add;type(datetime)" json:"createTime"`
+	UpdateTime       time.Time `orm:"column(update_time);auto_now;type(datetime)" json:"updateTime"`
+}
+
+// TableName for Endpoint
+func (e *Endpoint) TableName() string {
+	return "scanner_endpoint"
 }
 
 // FromJSON parses json data

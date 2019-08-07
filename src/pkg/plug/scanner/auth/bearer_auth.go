@@ -15,32 +15,26 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
-
-	"github.com/pkg/errors"
 )
 
-const (
-	authorization = "Authorization"
-	// Basic ...
-	Basic = "Basic"
-	// Bearer ...
-	Bearer = "Bearer"
-)
-
-// Authorizer defines operation for authorizing the requests
-type Authorizer interface {
-	Authorize(req *http.Request) error
+// bearerAuthorizer authorizes the request by adding `Authorization Bearer credential` header
+type bearerAuthorizer struct {
+	// optional
+	accessCred string
 }
 
-// GetAuthorizer is a factory method for getting an authorizer based on the given auth type
-func GetAuthorizer(auth, cred string) (Authorizer, error) {
-	switch auth {
-	case Basic:
-		return NewBasicAuth(cred), nil
-	case Bearer:
-		return NewBearerAuth(cred), nil
-	default:
-		return nil, errors.Errorf("auth type %s is not supported", auth)
+// Authorize requests
+func (ba *bearerAuthorizer) Authorize(req *http.Request) error {
+	if req != nil && len(ba.accessCred) > 0 {
+		req.Header.Add(authorization, fmt.Sprintf("Bearer %s", ba.accessCred))
 	}
+
+	return nil
+}
+
+// NewBearerAuth create bearer authorizer
+func NewBearerAuth(accessCred string) Authorizer {
+	return &bearerAuthorizer{accessCred}
 }

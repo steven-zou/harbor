@@ -73,7 +73,7 @@ type basicClient struct {
 }
 
 // NewClient news a basic client
-func NewClient(e *models.Endpoint) Client {
+func NewClient(e *models.Endpoint) (Client, error) {
 	transport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
@@ -89,13 +89,18 @@ func NewClient(e *models.Endpoint) Client {
 		},
 	}
 
+	authorizer, err := auth.GetAuthorizer(e.Auth, e.AccessCredential)
+	if err != nil {
+		return nil, err
+	}
+
 	return &basicClient{
 		httpClient: &http.Client{
 			Transport: transport,
 		},
 		spec:       v1.New(e.URL),
-		authorizer: auth.New(e.AccessCredential),
-	}
+		authorizer: authorizer,
+	}, nil
 }
 
 // CheckHealth ...
