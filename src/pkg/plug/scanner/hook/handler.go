@@ -23,6 +23,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// DefaultHandler ...
+var DefaultHandler = New()
+
 // Handler handles the hook events from the job service
 type Handler interface {
 	// HandleJobHooks handle the hook events from the job service

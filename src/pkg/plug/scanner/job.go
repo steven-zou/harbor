@@ -15,9 +15,12 @@
 package scanner
 
 import (
+	"bytes"
 	"encoding/json"
 	"reflect"
 	"time"
+
+	"github.com/goharbor/harbor/src/jobservice/logger"
 
 	"github.com/goharbor/harbor/src/jobservice/job"
 	"github.com/goharbor/harbor/src/pkg/plug/scanner/models"
@@ -114,9 +117,19 @@ CHECK:
 		return errors.Wrap(err, "scan job: check in scan result")
 	}
 
-	myLogger.Infof("Scan report:\n %s", string(resData))
+	printPrettyJSON(resData, myLogger)
 
 	return nil
+}
+
+func printPrettyJSON(in []byte, logger logger.Interface) {
+	var out bytes.Buffer
+	if err := json.Indent(&out, in, "", "  "); err != nil {
+		logger.Errorf("Print pretty JSON error: %s", err)
+		return
+	}
+
+	logger.Infof("%s\n", out.String())
 }
 
 func extractScanReq(params job.Parameters) (*models.ScanRequest, error) {
@@ -166,7 +179,7 @@ func extractEndpoint(params job.Parameters) (*models.Endpoint, error) {
 		return nil, err
 	}
 
-	if err := e.Validate(); err != nil {
+	if err := e.Validate(true); err != nil {
 		return nil, err
 	}
 

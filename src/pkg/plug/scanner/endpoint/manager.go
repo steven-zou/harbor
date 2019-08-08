@@ -62,7 +62,7 @@ func (bm *basicManager) Create(endpoint *models.Endpoint) (string, error) {
 	}
 	endpoint.UUID = uid.String()
 
-	if err := endpoint.Validate(); err != nil {
+	if err := endpoint.Validate(true); err != nil {
 		return "", errors.Wrap(err, "create endpoint")
 	}
 
@@ -88,7 +88,7 @@ func (bm *basicManager) Update(endpoint *models.Endpoint) error {
 		return errors.New("nil endpoint to update")
 	}
 
-	if err := endpoint.Validate(); err != nil {
+	if err := endpoint.Validate(true); err != nil {
 		return errors.Wrap(err, "update endpoint")
 	}
 

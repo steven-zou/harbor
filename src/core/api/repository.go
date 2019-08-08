@@ -25,6 +25,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/goharbor/harbor/src/jobservice/job"
+
+	"github.com/goharbor/harbor/src/pkg/plug/scanner"
+
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/goharbor/harbor/src/common"
@@ -39,6 +43,7 @@ import (
 	"github.com/goharbor/harbor/src/common/utils/registry"
 	"github.com/goharbor/harbor/src/core/config"
 	coreutils "github.com/goharbor/harbor/src/core/utils"
+	smod "github.com/goharbor/harbor/src/pkg/plug/scanner/models"
 	"github.com/goharbor/harbor/src/pkg/scan"
 	"github.com/goharbor/harbor/src/replication"
 	"github.com/goharbor/harbor/src/replication/event"
@@ -394,6 +399,18 @@ func (ra *RepositoryAPI) GetTag() {
 		return
 	}
 
+	pro, err := ra.ProjectMgr.Get(project)
+	if err != nil {
+		ra.ParseAndHandleError(fmt.Sprintf("failed to check the existence of project %s",
+			project), err)
+		return
+	}
+
+	if pro == nil {
+		ra.SendNotFoundError(fmt.Errorf("project %s not found", project))
+		return
+	}
+
 	client, err := coreutils.NewRepositoryClientForUI(ra.SecurityCtx.GetUsername(), repository)
 	if err != nil {
 		ra.SendInternalServerError(fmt.Errorf("failed to initialize the client for %s: %v",
@@ -411,7 +428,7 @@ func (ra *RepositoryAPI) GetTag() {
 		return
 	}
 
-	result := assembleTagsInParallel(client, repository, []string{tag},
+	result := assembleTagsInParallel(client, pro, repository, []string{tag},
 		ra.SecurityCtx.GetUsername())
 	ra.Data["json"] = result[0]
 	ra.ServeJSON()
@@ -518,14 +535,14 @@ func (ra *RepositoryAPI) GetTags() {
 	}
 
 	projectName, _ := utils.ParseRepository(repoName)
-	exist, err := ra.ProjectMgr.Exists(projectName)
+	pro, err := ra.ProjectMgr.Get(projectName)
 	if err != nil {
 		ra.ParseAndHandleError(fmt.Sprintf("failed to check the existence of project %s",
 			projectName), err)
 		return
 	}
 
-	if !exist {
+	if pro == nil {
 		ra.SendNotFoundError(fmt.Errorf("project %s not found", projectName))
 		return
 	}
@@ -576,14 +593,14 @@ func (ra *RepositoryAPI) GetTags() {
 		tags = ts
 	}
 
-	ra.Data["json"] = assembleTagsInParallel(client, repoName, tags,
+	ra.Data["json"] = assembleTagsInParallel(client, pro, repoName, tags,
 		ra.SecurityCtx.GetUsername())
 	ra.ServeJSON()
 }
 
 // get config, signature and scan overview and assemble them into one
 // struct for each tag in tags
-func assembleTagsInParallel(client *registry.Repository, repository string,
+func assembleTagsInParallel(client *registry.Repository, pro *models.Project, repository string,
 	tags []string, username string) []*models.TagResp {
 	var err error
 	signatures := map[string][]notarymodel.Target{}
@@ -597,8 +614,14 @@ func assembleTagsInParallel(client *registry.Repository, repository string,
 
 	c := make(chan *models.TagResp)
 	for _, tag := range tags {
-		go assembleTag(c, client, repository, tag, config.WithClair(),
-			config.WithNotary(), signatures)
+		go assembleTag(
+			c,
+			client,
+			pro,
+			repository,
+			tag,
+			config.WithNotary(),
+			signatures)
 	}
 	result := []*models.TagResp{}
 	var item *models.TagResp
@@ -612,8 +635,12 @@ func assembleTagsInParallel(client *registry.Repository, repository string,
 	return result
 }
 
-func assembleTag(c chan *models.TagResp, client *registry.Repository,
-	repository, tag string, clairEnabled, notaryEnabled bool,
+func assembleTag(
+	c chan *models.TagResp,
+	client *registry.Repository,
+	pro *models.Project,
+	repository, tag string,
+	notaryEnabled bool,
 	signatures map[string][]notarymodel.Target) {
 	item := &models.TagResp{}
 	// labels
@@ -635,9 +662,7 @@ func assembleTag(c chan *models.TagResp, client *registry.Repository,
 	}
 
 	// scan overview
-	if clairEnabled {
-		item.ScanOverview = getScanOverview(item.Digest, item.Name)
-	}
+	item.ScanOverview = getScanOverview(item.Digest, pro, repository, item.Name)
 
 	// signature, compare both digest and tag
 	if notaryEnabled && signatures != nil {
@@ -1065,32 +1090,71 @@ func (ra *RepositoryAPI) checkExistence(repository, tag string) (bool, string, e
 }
 
 // will return nil when it failed to get data.  The parm "tag" is for logging only.
-func getScanOverview(digest string, tag string) *models.ImgScanOverview {
+func getScanOverview(digest string, pro *models.Project, repo, tag string) *models.ImgScanOverview {
 	if len(digest) == 0 {
 		log.Debug("digest is nil")
 		return nil
 	}
-	data, err := dao.GetImgScanOverview(digest)
+
+	_, repository := utils.ParseRepository(repo)
+	art := &smod.Artifact{
+		NamespaceID: pro.ProjectID,
+		Namespace:   pro.Name,
+		Repository:  repository,
+		Tag:         tag,
+		Digest:      digest,
+		Kind:        "image",
+	}
+
+	results, err := scanner.DefaultController.GetReport(art)
 	if err != nil {
 		log.Errorf("Failed to get scan result for tag:%s, digest: %s, error: %v", tag, digest, err)
-	}
-	if data == nil {
 		return nil
 	}
-	job, err := dao.GetScanJob(data.JobID)
-	if err != nil {
-		log.Errorf("Failed to get scan job for id:%d, error: %v", data.JobID, err)
-		return nil
-	} else if job == nil { // job does not exist
-		log.Errorf("The scan job with id: %d does not exist, returning nil", data.JobID)
+
+	if len(results) == 0 {
+		log.Warningf("No scan result for tag: %s, digest: %s", tag, digest)
 		return nil
 	}
-	data.Status = job.Status
-	if data.Status != models.JobFinished {
-		log.Debugf("Unsetting vulnerable related historical values, job status: %s", data.Status)
-		data.Sev = 0
-		data.CompOverview = nil
-		data.DetailsKey = ""
+
+	// At present, only one support
+	res := results[0]
+
+	overview := &models.ImgScanOverview{}
+	overview.Digest = digest
+	overview.JobID = res.ID // TODO: TEMP APPROACH
+	overview.ID = res.ID
+	overview.DetailsKey = "" // TODO: NO NEED IN FUTURE
+	if res.Status == job.SuccessStatus.String() {
+		overview.Status = models.JobFinished
+	} else {
+		overview.Status = strings.ToLower(res.Status)
 	}
-	return data
+
+	// If the report is created then append it
+	if len(res.Report) > 0 {
+		report := &smod.ScanReport{}
+		if err := report.FromJSON(res.Report); err != nil {
+			log.Errorf("Failed to unmarshal report for tag %s digest %s with error: %s", tag, digest, err)
+			return nil
+		}
+
+		overview.Sev = int(report.Severity)
+		// Convert data type
+		data, err := json.Marshal(report.Overview)
+		if err != nil {
+			log.Errorf("Failed to convert vul overview data type with error: %s", err)
+			return nil
+		}
+
+		cView := &models.ComponentsOverview{}
+		if err := json.Unmarshal(data, cView); err != nil {
+			log.Errorf("Failed to convert vul overview data type with error: %s", err)
+			return nil
+		}
+
+		overview.CompOverview = cView
+	}
+
+	return overview
 }

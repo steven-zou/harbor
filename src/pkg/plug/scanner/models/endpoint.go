@@ -16,6 +16,7 @@ package models
 
 import (
 	"encoding/json"
+	"net/url"
 	"time"
 
 	"github.com/pkg/errors"
@@ -23,11 +24,12 @@ import (
 
 // Endpoint of the scanner adapter service
 type Endpoint struct {
-	UUID             string    `orm:"pk;column(uid)" json:"uid"`
-	URL              string    `orm:"column(url);unique;size(1024)" json:"url"`
+	ID               int64     `orm:"pk;auto;column(id)" json:"-"`
+	UUID             string    `orm:"unique;column(uid)" json:"uid"`
+	URL              string    `orm:"column(url);unique;size(512)" json:"url" valid:"Required"`
 	Auth             string    `orm:"column(auth)" json:"auth"`
 	AccessCredential string    `orm:"column(access_cred);null" json:"accessCredential,omitempty"`
-	Adapter          string    `orm:"column(adapter)" json:"adapter"`
+	Adapter          string    `orm:"column(adapter)" json:"adapter" valid:"Required"`
 	Disabled         bool      `orm:"column(disabled);default(true)" json:"disabled"`
 	IsDefault        bool      `orm:"column(is_default);default(false)" json:"isDefault"`
 	CreateTime       time.Time `orm:"column(create_time);auto_now_add;type(datetime)" json:"createTime"`
@@ -59,9 +61,14 @@ func (e *Endpoint) ToJSON() (string, error) {
 }
 
 // Validate endpoint
-func (e *Endpoint) Validate() error {
-	if len(e.UUID) == 0 || len(e.URL) == 0 {
+func (e *Endpoint) Validate(checkUUID bool) error {
+	if checkUUID && len(e.UUID) == 0 {
 		return errors.New("malformed endpoint")
+	}
+
+	err := checkURL(e.URL)
+	if err != nil {
+		return errors.Wrap(err, "endpoint validate")
 	}
 
 	if len(e.Adapter) == 0 {
@@ -69,4 +76,19 @@ func (e *Endpoint) Validate() error {
 	}
 
 	return nil
+}
+
+func checkURL(u string) error {
+	if len(u) == 0 {
+		return errors.New("empty url")
+	}
+
+	uri, err := url.Parse(u)
+	if err == nil {
+		if uri.Scheme != "http" && uri.Scheme != "https" {
+			err = errors.New("invalid scheme")
+		}
+	}
+
+	return err
 }

@@ -18,12 +18,12 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/goharbor/harbor/src/common/dao"
 	"github.com/goharbor/harbor/src/common/job"
-	jobmodels "github.com/goharbor/harbor/src/common/job/models"
 	"github.com/goharbor/harbor/src/common/models"
 	"github.com/goharbor/harbor/src/common/utils/log"
 	"github.com/goharbor/harbor/src/core/api"
+	jsj "github.com/goharbor/harbor/src/jobservice/job"
+	shook "github.com/goharbor/harbor/src/pkg/plug/scanner/hook"
 	"github.com/goharbor/harbor/src/pkg/retention"
 	"github.com/goharbor/harbor/src/replication"
 	"github.com/goharbor/harbor/src/replication/operation/hook"
@@ -46,6 +46,8 @@ type Handler struct {
 	id        int64
 	status    string
 	rawStatus string
+
+	change *jsj.StatusChange
 }
 
 // Prepare ...
@@ -58,13 +60,17 @@ func (h *Handler) Prepare() {
 		return
 	}
 	h.id = id
-	var data jobmodels.JobStatusChange
+	var data jsj.StatusChange
 	err = json.Unmarshal(h.Ctx.Input.CopyBody(1<<32), &data)
 	if err != nil {
 		log.Errorf("Failed to decode job status change, job ID: %d, error: %v", id, err)
 		h.Abort("200")
 		return
 	}
+
+	// TODO: ADD FOT TEMP
+	log.Infof("Receive status change=%#v", data)
+
 	h.rawStatus = data.Status
 	status, ok := statusMap[data.Status]
 	if !ok {
@@ -73,12 +79,13 @@ func (h *Handler) Prepare() {
 		return
 	}
 	h.status = status
+	h.change = &data
 }
 
 // HandleScan handles the webhook of scan job
 func (h *Handler) HandleScan() {
 	log.Debugf("received san job status update event: job-%d, status-%s", h.id, h.status)
-	if err := dao.UpdateScanJobStatus(h.id, h.status); err != nil {
+	if err := shook.DefaultHandler.HandleJobHooks(h.id, h.change); err != nil {
 		log.Errorf("Failed to update job status, id: %d, status: %s", h.id, h.status)
 		h.SendInternalServerError(err)
 		return

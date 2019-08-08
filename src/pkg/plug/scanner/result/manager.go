@@ -99,7 +99,7 @@ func (bm *basicManager) Create(res *models.Result) (int64, error) {
 		// Limit only one scanning performed by a given provider on the specified artifact can be there
 		theStatus := job.Status(existingCopy.Status)
 		if theStatus.Compare(job.RunningStatus) <= 0 {
-			return -1, errors.Errorf("conflict: a previous scanning is %s")
+			return -1, errors.Errorf("conflict: a previous scanning is %s", existingCopy.Status)
 		}
 		// Otherwise it will be a completed report
 		// Clear it before insert this new one

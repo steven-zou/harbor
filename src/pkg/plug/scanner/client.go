@@ -186,6 +186,12 @@ func (c *basicClient) GetReport(digest string) (*models.ScanReport, error) {
 }
 
 func (c *basicClient) send(req *http.Request, expectedStatus int) ([]byte, error) {
+	if c.authorizer != nil {
+		if err := c.authorizer.Authorize(req); err != nil {
+			return nil, errors.Wrap(err, "authorization")
+		}
+	}
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err

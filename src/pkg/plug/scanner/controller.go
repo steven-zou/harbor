@@ -37,6 +37,9 @@ const (
 	ProScannerMetaKey = "proScanner"
 )
 
+// DefaultController ...
+var DefaultController = NewController()
+
 // Controller defines operations for scan controlling
 type Controller interface {
 	// Scan the given artifact
@@ -133,15 +136,20 @@ func (bc *basicController) GetReport(artifact *models.Artifact) ([]*models.Resul
 
 	scanner, err := bc.getScanner(artifact)
 	if err != nil {
-		return nil, errors.Wrap(err, "scan")
+		return nil, errors.Wrap(err, "get report")
 	}
 
 	r, err := bc.resManager.GetBy(artifact.Digest, scanner.UUID)
 	if err != nil {
-		return nil, errors.Wrap(err, "scan")
+		return nil, errors.Wrap(err, "get report")
 	}
 
 	reports := make([]*models.Result, 0)
+	if r == nil {
+		// No matched reports found
+		return reports, nil
+	}
+
 	reports = append(reports, r)
 
 	return reports, nil
@@ -159,6 +167,10 @@ func (bc *basicController) getScanner(artifact *models.Artifact) (scanner *model
 		scanner, err = bc.endpointMgr.Get(scannerID)
 		if err != nil {
 			return nil, errors.Wrap(err, "get scanner")
+		}
+
+		if scanner != nil && scanner.Disabled {
+			return nil, errors.New("configured scanner is disabled")
 		}
 	}
 
@@ -194,8 +206,9 @@ func launchScanJob(trackID int64, artifact *models.Artifact, ept *models.Endpoin
 		return "", errors.Wrap(err, "launch scan job")
 	}
 
+	repoPath := fmt.Sprintf("%s/%s", artifact.Namespace, artifact.Repository)
 	// Generate access token
-	accessToken, err := makeAccessToken(artifact.Repository, fmt.Sprintf("%s:%s", ept.Adapter, ept.UUID))
+	accessToken, err := makeAccessToken(repoPath, fmt.Sprintf("%s:%s", ept.Adapter, ept.UUID))
 	if err != nil {
 		return "", errors.Wrap(err, "launch scan job")
 	}
@@ -204,7 +217,7 @@ func launchScanJob(trackID int64, artifact *models.Artifact, ept *models.Endpoin
 	req := &models.ScanRequest{
 		RegistryURL:   externalURL,
 		RegistryToken: accessToken,
-		Repository:    artifact.Repository,
+		Repository:    repoPath,
 		Tag:           artifact.Tag,
 		Digest:        artifact.Digest,
 	}
@@ -232,7 +245,7 @@ func launchScanJob(trackID int64, artifact *models.Artifact, ept *models.Endpoin
 	}
 
 	callbackURL := config.InternalCoreURL()
-	hookURL := fmt.Sprintf("%s/service/notifications/jobs/scan/tasks/%d", callbackURL, trackID)
+	hookURL := fmt.Sprintf("%s/service/notifications/jobs/scan/%d", callbackURL, trackID)
 	j.StatusHook = hookURL
 
 	return cjob.GlobalClient.SubmitJob(j)

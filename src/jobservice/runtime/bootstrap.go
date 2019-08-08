@@ -23,6 +23,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/goharbor/harbor/src/pkg/plug/scanner"
+
 	"github.com/goharbor/harbor/src/jobservice/api"
 	"github.com/goharbor/harbor/src/jobservice/common/utils"
 	"github.com/goharbor/harbor/src/jobservice/config"
@@ -239,7 +241,7 @@ func (bs *Bootstrap) loadAndRunRedisWorkerPool(
 			// Only for debugging and testing purpose
 			job.SampleJob: (*sample.Job)(nil),
 			// Functional jobs
-			job.ImageScanJob:         (*scan.ClairJob)(nil),
+			job.ImageScanJob:         (*scanner.Job)(nil),
 			job.ImageScanAllJob:      (*scan.All)(nil),
 			job.ImageGC:              (*gc.GarbageCollector)(nil),
 			job.Replication:          (*replication.Replication)(nil),

@@ -36,6 +36,7 @@ func QueryRecord(digest, endpoint string) (r *models.Result, err error) {
 	o := dao.GetOrmer()
 	qs := o.QueryTable(new(models.Result))
 
+	r = &models.Result{}
 	if err = qs.Filter("endpoint_id", endpoint).
 		Filter("digest", digest).
 		One(r); err != nil {
@@ -95,8 +96,8 @@ func UpdateRecord(r *models.Result, cols ...string) error {
 // UpdateRecordStatus ...
 func UpdateRecordStatus(trackID int64, status string, statusCode int) error {
 	o := dao.GetOrmer()
-	r := o.Raw("UPDATE scanner_result SET status = ? WHERE id = ? AND status_code < ?")
-	r = r.SetArgs(status, trackID, statusCode)
+	r := o.Raw("UPDATE scanner_result SET status = ?, status_code = ? WHERE id = ? AND status_code < ?")
+	r = r.SetArgs(status, statusCode, trackID, statusCode)
 
 	_, err := r.Exec()
 

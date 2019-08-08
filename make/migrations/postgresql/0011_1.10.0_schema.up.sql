@@ -1,7 +1,8 @@
 CREATE TABLE scanner_endpoint
 (
-    uid VARCHAR(128) PRIMARY KEY NOT NULL,
-    url VARCHAR(256) NOT NULL,
+    id SERIAL PRIMARY KEY NOT NULL,
+    uid VARCHAR(128) UNIQUE NOT NULL,
+    url VARCHAR(256) UNIQUE NOT NULL,
     auth VARCHAR(16) NULL,
     access_cred VARCHAR(256) NULL,
     adapter VARCHAR(128) NOT NULL,
@@ -22,5 +23,6 @@ CREATE TABLE scanner_result
     status_code INTEGER DEFAULT 0,
     report JSONB,
     start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    end_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    end_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(digest, endpoint_id)
 )

@@ -38,12 +38,15 @@ func AddEndpoint(edp *models.Endpoint) (int64, error) {
 
 // GetEndpoint ...
 func GetEndpoint(UUID string) (*models.Endpoint, error) {
-	e := &models.Endpoint{
-		UUID: UUID,
-	}
+	e := &models.Endpoint{}
 
 	o := dao.GetOrmer()
-	if err := o.Read(e); err != nil {
+	qs := o.QueryTable(new(models.Endpoint))
+
+	if err := qs.Filter("uid", UUID).One(e); err != nil {
+		if err == orm.ErrNoRows {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -52,13 +55,13 @@ func GetEndpoint(UUID string) (*models.Endpoint, error) {
 
 // EndpointExists ...
 func EndpointExists(UUID string) (bool, error) {
-	_, err := GetEndpoint(UUID)
+	e, err := GetEndpoint(UUID)
 
-	if err == orm.ErrNoRows {
-		return false, nil
+	if err == nil && e != nil {
+		return true, nil
 	}
 
-	return true, err
+	return false, err
 }
 
 // UpdateEndpoint ...

@@ -16,6 +16,7 @@ package auth
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -35,7 +36,10 @@ type Authorizer interface {
 
 // GetAuthorizer is a factory method for getting an authorizer based on the given auth type
 func GetAuthorizer(auth, cred string) (Authorizer, error) {
-	switch auth {
+	switch strings.TrimSpace(auth) {
+	// No authorizer required
+	case "":
+		return NewNoAuth(), nil
 	case Basic:
 		return NewBasicAuth(cred), nil
 	case Bearer:
