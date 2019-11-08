@@ -162,3 +162,28 @@ func (suite *RegistrationDAOTestSuite) TestDefault() {
 	err = SetDefaultRegistration(suite.registrationID)
 	require.Error(suite.T(), err)
 }
+
+// TestListWithInvalidParams ...
+func (suite *RegistrationDAOTestSuite) TestListWithInvalidParams() {
+	query := &q.Query{
+		PageSize:   500,
+		PageNumber: 1,
+		Keywords:   make(map[string]interface{}),
+	}
+
+	// Normal case
+	query.Keywords["ex_name"] = "forUT"
+	l, err := ListRegistrations(query)
+	require.NoError(suite.T(), err)
+	suite.Equal(1, len(l))
+
+	query.Keywords["ex_name"] = "forUT%%"
+	l, err = ListRegistrations(query)
+	require.NoError(suite.T(), err)
+	suite.Equal(0, len(l))
+
+	query.Keywords["ex_name"] = "%forUT%"
+	l, err = ListRegistrations(query)
+	require.NoError(suite.T(), err)
+	suite.Equal(0, len(l))
+}

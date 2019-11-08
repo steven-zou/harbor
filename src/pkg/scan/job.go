@@ -76,12 +76,13 @@ type Job struct{}
 
 // MaxFails for defining the number of retries
 func (j *Job) MaxFails() uint {
-	return 3
+	return 1
 }
 
 // ShouldRetry indicates if the job should be retried
 func (j *Job) ShouldRetry() bool {
-	return true
+	// No need to retry otherwise it will confuse the users.
+	return false
 }
 
 // Validate the parameters of this job

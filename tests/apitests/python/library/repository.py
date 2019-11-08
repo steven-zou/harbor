@@ -101,7 +101,8 @@ class Repository(base.Base):
             raise Exception("Image should be <Not Scanned> state!")
 
     def check_image_scan_result(self, repo_name, tag, expected_scan_status = "Success", **kwargs):
-        timeout_count = 30
+        timeout_count = 60
+        scan_status = ''
         while True:
             time.sleep(5)
             timeout_count = timeout_count - 1
@@ -110,9 +111,10 @@ class Repository(base.Base):
             _tag = self.get_tag(repo_name, tag, **kwargs)
             if _tag.name == tag and _tag.scan_overview != None:
                 for report in _tag.scan_overview.values():
-                    if report.get('scan_status') == expected_scan_status:
+                    scan_status = report.get('scan_status')
+                    if scan_status == expected_scan_status:
                         return
-        raise Exception("Scan image result is not as expected {}.".format(expected_scan_status))
+        raise Exception("Scan image result is {}, not equal with expected {}.".format(scan_status, expected_scan_status))
 
     def scan_image(self, repo_name, tag, expect_status_code = 202, **kwargs):
         client = self._get_client(**kwargs)
