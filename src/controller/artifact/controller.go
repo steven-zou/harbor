@@ -31,6 +31,8 @@ import (
 	"github.com/goharbor/harbor/src/controller/artifact/processor/cnab"
 	"github.com/goharbor/harbor/src/controller/artifact/processor/cnai"
 	"github.com/goharbor/harbor/src/controller/artifact/processor/image"
+	_ "github.com/goharbor/harbor/src/controller/artifact/processor/maven" // register Maven artifact processor
+	_ "github.com/goharbor/harbor/src/controller/artifact/processor/pypi"  // register PyPI artifact processor
 	"github.com/goharbor/harbor/src/controller/artifact/processor/sbom"
 	"github.com/goharbor/harbor/src/controller/artifact/processor/wasm"
 	"github.com/goharbor/harbor/src/controller/event/metadata"

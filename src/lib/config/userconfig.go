@@ -277,3 +277,19 @@ func AuditLogEventEnabled(ctx context.Context, eventType string) bool {
 	}
 	return true
 }
+
+// EnableMavenProxyArtifact returns true when the Maven repository API is enabled.
+func EnableMavenProxyArtifact(ctx context.Context) bool {
+	if DefaultMgr() == nil {
+		return false
+	}
+	return DefaultMgr().Get(ctx, common.EnableMavenProxyArtifact).GetBool()
+}
+
+// EnablePyPIProxyArtifact returns true when the PyPI simple repository API is enabled.
+func EnablePyPIProxyArtifact(ctx context.Context) bool {
+	if DefaultMgr() == nil {
+		return false
+	}
+	return DefaultMgr().Get(ctx, common.EnablePyPIProxyArtifact).GetBool()
+}

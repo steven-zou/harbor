@@ -255,4 +255,14 @@ const (
 
 	// The replication adapter whitelist
 	ReplicationAdapterWhiteList = "REPLICATION_ADAPTER_WHITELIST"
+
+	// EnableMavenProxyArtifact controls whether the Maven repository API is
+	// enabled.  When true, Harbor accepts Maven artifact push/pull requests
+	// at /service/maven/ and stores them as OCI artifacts.
+	EnableMavenProxyArtifact = "enable_maven_proxy_artifact"
+
+	// EnablePyPIProxyArtifact controls whether the PyPI simple repository API
+	// is enabled.  When true, Harbor accepts Python package upload/download
+	// requests at /service/pypi/ and stores them as OCI artifacts.
+	EnablePyPIProxyArtifact = "enable_pypi_proxy_artifact"
 )

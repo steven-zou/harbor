@@ -24,6 +24,7 @@ import (
 	"github.com/goharbor/harbor/src/core/controllers"
 	"github.com/goharbor/harbor/src/core/service/token"
 	"github.com/goharbor/harbor/src/server/handler"
+	"github.com/goharbor/harbor/src/pkg/artifact/adapter"
 	"github.com/goharbor/harbor/src/server/router"
 )
 
@@ -58,6 +59,28 @@ func registerRoutes() {
 
 	web.Router("/service/token", &token.Handler{})
 
+	// Register routes for enabled artifact adapters (e.g. Maven, PyPI).
+	registerAdapterRoutes()
+
 	// Error pages
 	web.ErrorController(&controllers.ErrorController{})
+}
+
+// registerAdapterRoutes iterates over all registered artifact adapters and
+// registers their HTTP routes when the adapter is enabled.  The security
+// middleware stack (including authentication) is already applied globally,
+// so individual adapter handlers only need to enforce per-project RBAC.
+func registerAdapterRoutes() {
+	for _, a := range adapter.List() {
+		if !a.IsEnabled() {
+			continue
+		}
+		for _, route := range a.GetRoutes() {
+			r := router.NewRoute().Path(route.Path)
+			if route.Method != "" {
+				r = r.Method(route.Method)
+			}
+			r.Handler(route.Handler)
+		}
+	}
 }
