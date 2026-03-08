@@ -65,6 +65,8 @@ import (
 	_ "github.com/goharbor/harbor/src/pkg/accessory/model/nydus"
 	_ "github.com/goharbor/harbor/src/pkg/accessory/model/sbom"
 	_ "github.com/goharbor/harbor/src/pkg/accessory/model/subject"
+	_ "github.com/goharbor/harbor/src/pkg/artifact/adapter/maven" // register Maven artifact adapter
+	_ "github.com/goharbor/harbor/src/pkg/artifact/adapter/pypi"  // register PyPI artifact adapter
 	"github.com/goharbor/harbor/src/pkg/audit"
 	_ "github.com/goharbor/harbor/src/pkg/auditext/event/config"
 	_ "github.com/goharbor/harbor/src/pkg/auditext/event/login"

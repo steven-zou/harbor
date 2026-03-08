@@ -205,5 +205,8 @@ var (
 		{Name: common.BeegoMaxUploadSizeBytes, Scope: SystemScope, Group: BasicGroup, EnvKey: "BEEGO_MAX_UPLOAD_SIZE_BYTES", DefaultValue: fmt.Sprintf("%d", common.DefaultBeegoMaxUploadSizeBytes), ItemType: &Int64Type{}, Editable: false, Description: `The bytes for limiting the beego max upload size, default it 128GB`},
 
 		{Name: common.ReplicationAdapterWhiteList, Scope: SystemScope, Group: BasicGroup, EnvKey: "REPLICATION_ADAPTER_WHITELIST", DefaultValue: "", ItemType: &StringType{}, Editable: false},
+
+		{Name: common.EnableMavenProxyArtifact, Scope: SystemScope, Group: BasicGroup, EnvKey: "ENABLE_MAVEN_PROXY_ARTIFACT", DefaultValue: "false", ItemType: &BoolType{}, Editable: false, Description: `Enable the Maven repository API so Harbor can serve Maven artifacts stored as OCI artifacts.`},
+		{Name: common.EnablePyPIProxyArtifact, Scope: SystemScope, Group: BasicGroup, EnvKey: "ENABLE_PYPI_PROXY_ARTIFACT", DefaultValue: "false", ItemType: &BoolType{}, Editable: false, Description: `Enable the PyPI simple repository API so Harbor can serve Python packages stored as OCI artifacts.`},
 	}
 )
